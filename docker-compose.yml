@@ -1,0 +1,133 @@
+services:
+
+  mongodb:
+    image: mongo:${MONGO_VERSION}
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${ELASTIC_VERSION}
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 24
+
+  management-api:
+    image: graviteeio/apim-management-api:${APIM_VERSION}
+    restart: unless-stopped
+    # Optional Enterprise license (local only, git-ignored, never packaged)
+    env_file:
+      - path: ./.secrets/license.env
+        required: false
+    depends_on:
+      mongodb: { condition: service_healthy }
+      elasticsearch: { condition: service_healthy }
+    environment:
+      - gravitee_ds_mongodb_host=mongodb
+      - gravitee_analytics_elasticsearch_endpoints_0=http://elasticsearch:9200
+    ports:
+      - "127.0.0.1:${MGMT_API_PORT}:8083"
+
+  gateway:
+    image: graviteeio/apim-gateway:${APIM_VERSION}
+    restart: unless-stopped
+    # Optional Enterprise license (local only, git-ignored, never packaged)
+    env_file:
+      - path: ./.secrets/license.env
+        required: false
+    depends_on:
+      mongodb: { condition: service_healthy }
+      elasticsearch: { condition: service_healthy }
+    environment:
+      # 4.x reads repositories.management + ratelimit, both built from ds.mongodb.*
+      - gravitee_ds_mongodb_host=mongodb
+      - gravitee_reporters_elasticsearch_endpoints_0=http://elasticsearch:9200
+      # Prometheus metrics service (off by default)
+      - gravitee_services_metrics_enabled=true
+      - gravitee_services_metrics_prometheus_enabled=true
+      # Internal API must listen beyond localhost so the Prometheus container can scrape it
+      - gravitee_services_core_http_host=0.0.0.0
+      - gravitee_services_core_http_port=18082
+      - gravitee_services_core_http_authentication_type=basic
+      - gravitee_services_core_http_authentication_users_${GATEWAY_INTERNAL_USER}=${GATEWAY_INTERNAL_PASSWORD}
+    ports:
+      - "127.0.0.1:${GATEWAY_PORT}:8082"
+    # 18082 is intentionally not published: only Prometheus (same network) reads it
+
+  management-ui:
+    image: graviteeio/apim-management-ui:${APIM_VERSION}
+    restart: unless-stopped
+    depends_on:
+      - management-api
+    environment:
+      - MGMT_API_URL=http://localhost:${MGMT_API_PORT}/management/organizations/DEFAULT/environments/DEFAULT/
+    ports:
+      - "127.0.0.1:${MGMT_UI_PORT}:8080"
+
+  # Demo backend for the sample API (returns any status code via /status/{code})
+  backend:
+    image: mccutchen/go-httpbin:${HTTPBIN_VERSION}
+    restart: unless-stopped
+
+  # Continuous demo traffic (run `scripts/seed.py` first). Start with: docker compose --profile demo up -d
+  traffic:
+    image: python:${PYTHON_VERSION}
+    profiles: ["demo"]
+    restart: unless-stopped
+    depends_on:
+      - gateway
+    environment:
+      - GATEWAY_URL=http://gateway:8082
+      - TRAFFIC_RPS=${TRAFFIC_RPS}
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ./scripts:/scripts:ro
+    command: ["python", "-I", "/scripts/traffic.py"]
+
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_VERSION}
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+      - prom_data:/prometheus
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT}:9090"
+
+  grafana:
+    image: grafana/grafana:${GRAFANA_VERSION}
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/dashboards/gravitee-overview.json
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT}:3000"
+
+volumes:
+  mongo_data:
+  es_data:
+  prom_data:
+  grafana_data:

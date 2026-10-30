@@ -1,0 +1,9 @@
+scripts/.keys.json
+dist/
+.secrets/
+scripts/node_modules
+media/.video-tmp/
+media/*.mp4
+.DS_Store
+dashboards-src/.denylist
+docs-proposal/

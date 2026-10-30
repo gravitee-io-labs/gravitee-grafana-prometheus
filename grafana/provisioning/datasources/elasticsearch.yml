@@ -1,0 +1,38 @@
+apiVersion: 1
+
+datasources:
+  # One document per API call (v4 APIs): status, latency split, API, plan, application, geo, user agent, custom.*
+  - name: Gravitee Analytics
+    uid: gravitee-analytics
+    type: elasticsearch
+    access: proxy
+    url: http://elasticsearch:9200
+    jsonData:
+      index: "gravitee-v4-metrics-*"
+      timeField: "@timestamp"
+      maxConcurrentShardRequests: 5
+      logMessageField: uri
+      logLevelField: status
+
+  # One document per gateway node every few seconds: JVM, CPU, memory, file descriptors
+  - name: Gravitee Node Monitoring
+    uid: gravitee-monitor
+    type: elasticsearch
+    access: proxy
+    url: http://elasticsearch:9200
+    jsonData:
+      index: "gravitee-monitor-*"
+      timeField: "@timestamp"
+
+  # Call logs, written only for APIs with logging enabled: headers and payloads, client side
+  # (entrypoint-*) and backend side (endpoint-*). Contains credentials and personal data: restrict access.
+  - name: Gravitee Call Logs
+    uid: gravitee-logs
+    type: elasticsearch
+    access: proxy
+    url: http://elasticsearch:9200
+    jsonData:
+      index: "gravitee-v4-log-*"
+      timeField: "@timestamp"
+      maxConcurrentShardRequests: 5
+      logMessageField: entrypoint-request.uri

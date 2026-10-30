@@ -1,0 +1,2164 @@
+{
+  "uid": "gravitee-logs",
+  "title": "Gravitee \u00b7 Call Logs",
+  "description": "Headers and payloads of logged API calls, on the client and backend side: search them, list failed calls, and inspect one call hop by hop.",
+  "tags": [
+    "gravitee"
+  ],
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m"
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "Gravitee dashboards",
+      "type": "dashboards",
+      "tags": [
+        "gravitee"
+      ],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "icon": "external link"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "ds_logs",
+        "label": "Call logs (Elasticsearch)",
+        "type": "datasource",
+        "query": "elasticsearch",
+        "regex": "",
+        "current": {
+          "text": "gravitee-logs",
+          "value": "gravitee-logs"
+        },
+        "hide": 0,
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "ds_analytics",
+        "label": "Analytics (Elasticsearch)",
+        "type": "datasource",
+        "query": "elasticsearch",
+        "regex": "",
+        "current": {
+          "text": "gravitee-analytics",
+          "value": "gravitee-analytics"
+        },
+        "hide": 0,
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "api",
+        "label": "API",
+        "type": "query",
+        "datasource": {
+          "type": "elasticsearch",
+          "uid": "${ds_logs}"
+        },
+        "query": "{\"find\": \"terms\", \"field\": \"api-name\", \"query\": \"*\", \"size\": 500}",
+        "definition": "terms api-name",
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": true,
+        "multi": true,
+        "allValue": "*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "hide": 0
+      },
+      {
+        "name": "request_id",
+        "label": "Request id (call detail)",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "hide": 0
+      },
+      {
+        "name": "search",
+        "label": "Search (headers & payloads)",
+        "type": "textbox",
+        "query": "*",
+        "current": {
+          "text": "*",
+          "value": "*"
+        },
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 2,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 6
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "\n**Call logs** record the headers and payloads of API calls, on the client side and on the backend side. They're\nwritten only for APIs with **logging enabled** (API \u2192 *Logs* \u2192 *Configure Reporting*), for the calls that match\nits condition. The demo logs **1 call in 5** on every API. Logs are much bigger than analytics records,\nso enable them per API, with a condition or for a limited time.\n\n**Search** (Lucene) matches payloads with wildcards, e.g. `*wayne-enterprises*` or `*EUR*`, and any indexed field,\ne.g. `entrypoint-response.status:503`, `error-key:RATE_LIMIT_TOO_MANY_REQUESTS` or `application-name:\"Retail Web\"`.\nHeaders are stored but not searchable. Click a **Request id** to show that call below, or open one from the\n*Request id* links in **API Drill-down**. \u26a0\ufe0f Logs can contain personal data and credentials: credential headers are\nhidden here, but restrict access to this data source.\n"
+      }
+    },
+    {
+      "id": 3,
+      "type": "row",
+      "title": "Logged calls",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Logged calls",
+      "description": "",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_logs}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 7,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_logs}"
+          },
+          "query": "api-name:$api AND (${search:raw})",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "2",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1f60c4",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Share of calls logged",
+      "description": "Logged calls / all calls in the analytics index. Logging conditions (sampling, a debug header\u2026) and APIs without logging keep this below 100 %.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Mixed --"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 7,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_logs}"
+          },
+          "query": "api-name:$api AND (${search:raw})",
+          "alias": "",
+          "hide": true,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "2",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api",
+          "alias": "",
+          "hide": true,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "2",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "__expr__",
+            "uid": "__expr__"
+          },
+          "type": "reduce",
+          "expression": "A",
+          "reducer": "sum",
+          "settings": {
+            "mode": "replaceNN",
+            "replaceWithValue": 0
+          },
+          "hide": true
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "__expr__",
+            "uid": "__expr__"
+          },
+          "type": "reduce",
+          "expression": "B",
+          "reducer": "sum",
+          "settings": {
+            "mode": "replaceNN",
+            "replaceWithValue": 0
+          },
+          "hide": true
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "__expr__",
+            "uid": "__expr__"
+          },
+          "type": "math",
+          "expression": "$C / $D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "percentunit",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Logged failures (4xx/5xx)",
+      "description": "",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_logs}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 7,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_logs}"
+          },
+          "query": "api-name:$api AND (${search:raw}) AND entrypoint-response.status:[400 TO 599]",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "2",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Answered by the Gateway",
+      "description": "Logged calls the Gateway answered without calling the backend (backend status 0): rejected by plan security or a policy such as rate limiting.",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_logs}"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 7,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_logs}"
+          },
+          "query": "api-name:$api AND (${search:raw}) AND endpoint-response.status:0",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "2",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Logged calls by client status",
+      "description": "",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_logs}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 11,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_logs}"
+          },
+          "query": "api-name:$api AND (${search:raw}) AND entrypoint-response.status:[200 TO 299]",
+          "alias": "2xx",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "2",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_logs}"
+          },
+          "query": "api-name:$api AND (${search:raw}) AND entrypoint-response.status:[300 TO 399]",
+          "alias": "3xx",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "2",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_logs}"
+          },
+          "query": "api-name:$api AND (${search:raw}) AND entrypoint-response.status:[400 TO 499]",
+          "alias": "4xx",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "2",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_logs}"
+          },
+          "query": "api-name:$api AND (${search:raw}) AND entrypoint-response.status:[500 TO 599]",
+          "alias": "5xx",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "2",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 2,
+            "fillOpacity": 80,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "lineInterpolation": "smooth",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "mappings": [],
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "2xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "3xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "4xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "5xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ],
+          "sortBy": "Sum",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 9,
+      "type": "bargauge",
+      "title": "Logged calls by API",
+      "description": "",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_logs}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 11,
+        "w": 6,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_logs}"
+          },
+          "query": "api-name:$api AND (${search:raw})",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "10",
+              "type": "terms",
+              "field": "api-name",
+              "settings": {
+                "size": "10",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "left",
+        "sizing": "manual",
+        "maxVizHeight": 26,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 10,
+      "type": "bargauge",
+      "title": "Gateway rejections by error key",
+      "description": "",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_logs}"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 11,
+        "w": 6,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_logs}"
+          },
+          "query": "api-name:$api AND (${search:raw}) AND _exists_:error-key",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "10",
+              "type": "terms",
+              "field": "error-key.keyword",
+              "settings": {
+                "size": "10",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "orange",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "left",
+        "sizing": "manual",
+        "maxVizHeight": 26,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 11,
+      "type": "row",
+      "title": "Call log explorer",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 12,
+      "type": "table",
+      "title": "Logged failed calls",
+      "description": "Click a request id to show its headers and payloads below.",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_logs}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 21,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_logs}"
+          },
+          "query": "api-name:$api AND (${search:raw}) AND entrypoint-response.status:[400 TO 599]",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "raw_data",
+              "settings": {
+                "size": "200"
+              }
+            }
+          ],
+          "bucketAggs": [],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "entrypoint-response.status"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 400
+                    },
+                    {
+                      "color": "red",
+                      "value": 500
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "endpoint-response.status"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 400
+                    },
+                    {
+                      "color": "red",
+                      "value": 500
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "endpoint-response.status"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "not called",
+                        "color": "transparent",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "@timestamp"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Show this call's headers and payloads",
+                    "url": "/d/gravitee-logs?${__url_time_range}&${ds_logs:queryparam}&${ds_analytics:queryparam}&var-request_id=${__data.fields[\"request-id\"]}&var-search=*"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "entrypoint-request.uri"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Show this call's headers and payloads",
+                    "url": "/d/gravitee-logs?${__url_time_range}&${ds_logs:queryparam}&${ds_analytics:queryparam}&var-request_id=${__data.fields[\"request-id\"]}&var-search=*"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "request-id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Show this call's headers and payloads",
+                    "url": "/d/gravitee-logs?${__url_time_range}&${ds_logs:queryparam}&${ds_analytics:queryparam}&var-request_id=${__data.fields[\"request-id\"]}&var-search=*"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "@timestamp",
+                "api-name",
+                "application-name",
+                "entrypoint-request.method",
+                "entrypoint-request.uri",
+                "entrypoint-response.status",
+                "endpoint-response.status",
+                "error-key",
+                "request-id"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "@timestamp": "Time",
+              "api-name": "API",
+              "application-name": "Application",
+              "entrypoint-request.method": "Method",
+              "entrypoint-request.uri": "URI",
+              "entrypoint-response.status": "Client status",
+              "endpoint-response.status": "Backend status",
+              "error-key": "Error key",
+              "request-id": "Request id"
+            },
+            "excludeByName": {},
+            "indexByName": {
+              "@timestamp": 0,
+              "api-name": 1,
+              "application-name": 2,
+              "entrypoint-request.method": 3,
+              "entrypoint-request.uri": 4,
+              "entrypoint-response.status": 5,
+              "endpoint-response.status": 6,
+              "error-key": 7,
+              "request-id": 8
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "table",
+      "title": "All logged calls",
+      "description": "Use Search to find calls by payload content with wildcards (e.g. *ORD-1234*, a customer or order id) or by field. Click a request id to show the call below.",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_logs}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 30,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_logs}"
+          },
+          "query": "api-name:$api AND (${search:raw})",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "raw_data",
+              "settings": {
+                "size": "200"
+              }
+            }
+          ],
+          "bucketAggs": [],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "entrypoint-response.status"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 400
+                    },
+                    {
+                      "color": "red",
+                      "value": 500
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "endpoint-response.status"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 400
+                    },
+                    {
+                      "color": "red",
+                      "value": 500
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "endpoint-response.status"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "not called",
+                        "color": "transparent",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "@timestamp"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Show this call's headers and payloads",
+                    "url": "/d/gravitee-logs?${__url_time_range}&${ds_logs:queryparam}&${ds_analytics:queryparam}&var-request_id=${__data.fields[\"request-id\"]}&var-search=*"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "entrypoint-request.uri"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Show this call's headers and payloads",
+                    "url": "/d/gravitee-logs?${__url_time_range}&${ds_logs:queryparam}&${ds_analytics:queryparam}&var-request_id=${__data.fields[\"request-id\"]}&var-search=*"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "request-id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Show this call's headers and payloads",
+                    "url": "/d/gravitee-logs?${__url_time_range}&${ds_logs:queryparam}&${ds_analytics:queryparam}&var-request_id=${__data.fields[\"request-id\"]}&var-search=*"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "@timestamp",
+                "api-name",
+                "application-name",
+                "entrypoint-request.method",
+                "entrypoint-request.uri",
+                "entrypoint-response.status",
+                "endpoint-response.status",
+                "error-key",
+                "request-id"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "@timestamp": "Time",
+              "api-name": "API",
+              "application-name": "Application",
+              "entrypoint-request.method": "Method",
+              "entrypoint-request.uri": "URI",
+              "entrypoint-response.status": "Client status",
+              "endpoint-response.status": "Backend status",
+              "error-key": "Error key",
+              "request-id": "Request id"
+            },
+            "excludeByName": {},
+            "indexByName": {
+              "@timestamp": 0,
+              "api-name": 1,
+              "application-name": 2,
+              "entrypoint-request.method": 3,
+              "entrypoint-request.uri": 4,
+              "entrypoint-response.status": 5,
+              "endpoint-response.status": 6,
+              "error-key": 7,
+              "request-id": 8
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "row",
+      "title": "Call detail",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 39,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Call summary",
+      "description": "The call selected by Request id; when it is empty, the most recent matching call.",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_logs}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 40,
+        "w": 8,
+        "h": 16
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_logs}"
+          },
+          "query": "api-name:$api AND (${search:raw}) AND request-id:*${request_id:lucene}*",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "raw_data",
+              "settings": {
+                "size": "1"
+              }
+            }
+          ],
+          "bucketAggs": [],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "request-id",
+                "@timestamp",
+                "api-name",
+                "application-name",
+                "plan-id",
+                "entrypoint-request.method",
+                "entrypoint-request.uri",
+                "entrypoint-response.status",
+                "endpoint-request.method",
+                "endpoint-request.uri",
+                "endpoint-response.status",
+                "error-key",
+                "error-message"
+              ]
+            }
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "targetField": "@timestamp",
+                "destinationType": "string",
+                "dateFormat": "YYYY-MM-DD HH:mm:ss.SSS"
+              }
+            ]
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "@timestamp": "Time",
+              "api-name": "API",
+              "application-name": "Application",
+              "plan-id": "Plan id",
+              "entrypoint-request.method": "Client \u2192 Gateway method",
+              "entrypoint-request.uri": "Client \u2192 Gateway URI",
+              "entrypoint-response.status": "Gateway \u2192 client status",
+              "endpoint-request.method": "Gateway \u2192 backend method",
+              "endpoint-request.uri": "Gateway \u2192 backend URL",
+              "endpoint-response.status": "Backend \u2192 Gateway status",
+              "error-key": "Error key",
+              "error-message": "Error message"
+            },
+            "excludeByName": {},
+            "indexByName": {
+              "request-id": 0,
+              "@timestamp": 1,
+              "api-name": 2,
+              "application-name": 3,
+              "plan-id": 4,
+              "entrypoint-request.method": 5,
+              "entrypoint-request.uri": 6,
+              "endpoint-request.method": 7,
+              "endpoint-request.uri": 8,
+              "endpoint-response.status": 9,
+              "entrypoint-response.status": 10,
+              "error-key": 11,
+              "error-message": 12
+            }
+          }
+        },
+        {
+          "id": "transpose",
+          "options": {
+            "firstFieldName": "Field",
+            "restFieldsName": "Value"
+          }
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "type": "table",
+      "title": "Payloads",
+      "description": "Bodies at each hop. Comparing 1\u21942 or 3\u21944 shows what policies changed (transformation, masking). The Gateway caps logged bodies, so large payloads may be truncated.",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_logs}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 40,
+        "w": 16,
+        "h": 16
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_logs}"
+          },
+          "query": "api-name:$api AND (${search:raw}) AND request-id:*${request_id:lucene}*",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "raw_data",
+              "settings": {
+                "size": "1"
+              }
+            }
+          ],
+          "bucketAggs": [],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Hop"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 330
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/[0-9a-f]{8}-[0-9a-f]{4}-/"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "request-id",
+                "entrypoint-request.body",
+                "endpoint-request.body",
+                "endpoint-response.body",
+                "entrypoint-response.body"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "entrypoint-request.body": "1. Client \u2192 Gateway (request)",
+              "endpoint-request.body": "2. Gateway \u2192 backend (request, after policies)",
+              "endpoint-response.body": "3. Backend \u2192 Gateway (response)",
+              "entrypoint-response.body": "4. Gateway \u2192 client (response, after policies)"
+            },
+            "excludeByName": {},
+            "indexByName": {
+              "request-id": 0,
+              "entrypoint-request.body": 1,
+              "endpoint-request.body": 2,
+              "endpoint-response.body": 3,
+              "entrypoint-response.body": 4
+            }
+          }
+        },
+        {
+          "id": "transpose",
+          "options": {
+            "firstFieldName": "Hop",
+            "restFieldsName": "Body"
+          }
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "type": "table",
+      "title": "Client \u2192 Gateway headers",
+      "description": "Headers of the call selected by Request id (when empty, the most recent matching call). API keys, Authorization and cookies are stored in the log index but hidden here.",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_logs}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 56,
+        "w": 6,
+        "h": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_logs}"
+          },
+          "query": "api-name:$api AND (${search:raw}) AND request-id:*${request_id:lucene}*",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "raw_data",
+              "settings": {
+                "size": "1"
+              }
+            }
+          ],
+          "bucketAggs": [],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "pattern": "^(request-id|entrypoint-request\\.headers\\..*)$"
+            }
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "exclude": {
+              "pattern": "/\\.(x-gravitee-api-key|authorization|proxy-authorization|cookie|set-cookie)$/i"
+            }
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^entrypoint-request\\.headers\\.(.*)$",
+            "renamePattern": "$1"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {},
+            "excludeByName": {},
+            "indexByName": {
+              "request-id": 0
+            }
+          }
+        },
+        {
+          "id": "transpose",
+          "options": {
+            "firstFieldName": "Header",
+            "restFieldsName": "Value"
+          }
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "type": "table",
+      "title": "Gateway \u2192 backend headers",
+      "description": "Headers of the call selected by Request id (when empty, the most recent matching call). API keys, Authorization and cookies are stored in the log index but hidden here.",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_logs}"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 56,
+        "w": 6,
+        "h": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_logs}"
+          },
+          "query": "api-name:$api AND (${search:raw}) AND request-id:*${request_id:lucene}*",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "raw_data",
+              "settings": {
+                "size": "1"
+              }
+            }
+          ],
+          "bucketAggs": [],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "pattern": "^(request-id|endpoint-request\\.headers\\..*)$"
+            }
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "exclude": {
+              "pattern": "/\\.(x-gravitee-api-key|authorization|proxy-authorization|cookie|set-cookie)$/i"
+            }
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^endpoint-request\\.headers\\.(.*)$",
+            "renamePattern": "$1"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {},
+            "excludeByName": {},
+            "indexByName": {
+              "request-id": 0
+            }
+          }
+        },
+        {
+          "id": "transpose",
+          "options": {
+            "firstFieldName": "Header",
+            "restFieldsName": "Value"
+          }
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "type": "table",
+      "title": "Backend \u2192 Gateway headers",
+      "description": "Headers of the call selected by Request id (when empty, the most recent matching call). API keys, Authorization and cookies are stored in the log index but hidden here.",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_logs}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 56,
+        "w": 6,
+        "h": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_logs}"
+          },
+          "query": "api-name:$api AND (${search:raw}) AND request-id:*${request_id:lucene}*",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "raw_data",
+              "settings": {
+                "size": "1"
+              }
+            }
+          ],
+          "bucketAggs": [],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "pattern": "^(request-id|endpoint-response\\.headers\\..*)$"
+            }
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "exclude": {
+              "pattern": "/\\.(x-gravitee-api-key|authorization|proxy-authorization|cookie|set-cookie)$/i"
+            }
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^endpoint-response\\.headers\\.(.*)$",
+            "renamePattern": "$1"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {},
+            "excludeByName": {},
+            "indexByName": {
+              "request-id": 0
+            }
+          }
+        },
+        {
+          "id": "transpose",
+          "options": {
+            "firstFieldName": "Header",
+            "restFieldsName": "Value"
+          }
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "type": "table",
+      "title": "Gateway \u2192 client headers",
+      "description": "Headers of the call selected by Request id (when empty, the most recent matching call). API keys, Authorization and cookies are stored in the log index but hidden here.",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_logs}"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 56,
+        "w": 6,
+        "h": 12
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_logs}"
+          },
+          "query": "api-name:$api AND (${search:raw}) AND request-id:*${request_id:lucene}*",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "raw_data",
+              "settings": {
+                "size": "1"
+              }
+            }
+          ],
+          "bucketAggs": [],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "pattern": "^(request-id|entrypoint-response\\.headers\\..*)$"
+            }
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "exclude": {
+              "pattern": "/\\.(x-gravitee-api-key|authorization|proxy-authorization|cookie|set-cookie)$/i"
+            }
+          }
+        },
+        {
+          "id": "renameByRegex",
+          "options": {
+            "regex": "^entrypoint-response\\.headers\\.(.*)$",
+            "renamePattern": "$1"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {},
+            "excludeByName": {},
+            "indexByName": {
+              "request-id": 0
+            }
+          }
+        },
+        {
+          "id": "transpose",
+          "options": {
+            "firstFieldName": "Header",
+            "restFieldsName": "Value"
+          }
+        }
+      ]
+    }
+  ]
+}

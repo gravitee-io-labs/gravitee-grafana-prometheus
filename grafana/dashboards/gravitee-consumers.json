@@ -1,0 +1,2035 @@
+{
+  "uid": "gravitee-consumers",
+  "title": "Gravitee \u00b7 Consumers, Plans & Tenants",
+  "description": "Who consumes your APIs, how much, with what quality of service, from where \u2014 plus business dimensions (tenant, channel, \u2026) stamped by the Assign Metrics policy.",
+  "tags": [
+    "gravitee"
+  ],
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m"
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "Gravitee dashboards",
+      "type": "dashboards",
+      "tags": [
+        "gravitee"
+      ],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "icon": "external link"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "ds_analytics",
+        "label": "Analytics (Elasticsearch)",
+        "type": "datasource",
+        "query": "elasticsearch",
+        "regex": "",
+        "current": {
+          "text": "gravitee-analytics",
+          "value": "gravitee-analytics"
+        },
+        "hide": 0,
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "ds_prom",
+        "label": "Prometheus",
+        "type": "datasource",
+        "query": "prometheus",
+        "regex": "",
+        "current": {
+          "text": "prometheus",
+          "value": "prometheus"
+        },
+        "hide": 0,
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "api",
+        "label": "API",
+        "type": "query",
+        "datasource": {
+          "type": "elasticsearch",
+          "uid": "${ds_analytics}"
+        },
+        "query": "{\"find\": \"terms\", \"field\": \"api-name\", \"query\": \"*\", \"size\": 500}",
+        "definition": "terms api-name",
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": true,
+        "multi": true,
+        "allValue": "*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "hide": 0
+      },
+      {
+        "name": "filters",
+        "label": "Filter (any field)",
+        "type": "adhoc",
+        "datasource": {
+          "type": "elasticsearch",
+          "uid": "${ds_analytics}"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 2,
+      "type": "row",
+      "title": "Applications",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Active applications",
+      "description": "",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_analytics}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api AND _exists_:application-name",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "cardinality",
+              "field": "application-name.keyword"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "9",
+              "type": "terms",
+              "field": "env-id",
+              "settings": {
+                "size": "10",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Active subscriptions",
+      "description": "",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_analytics}"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api AND _exists_:application-name",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "cardinality",
+              "field": "subscription-id"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "9",
+              "type": "terms",
+              "field": "env-id",
+              "settings": {
+                "size": "10",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Keyless share",
+      "description": "Share of calls on keyless (anonymous) plans.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Mixed --"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api AND NOT _exists_:application-name",
+          "alias": "",
+          "hide": true,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "2",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api",
+          "alias": "",
+          "hide": true,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "2",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "__expr__",
+            "uid": "__expr__"
+          },
+          "type": "reduce",
+          "expression": "A",
+          "reducer": "sum",
+          "settings": {
+            "mode": "replaceNN",
+            "replaceWithValue": 0
+          },
+          "hide": true
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "__expr__",
+            "uid": "__expr__"
+          },
+          "type": "reduce",
+          "expression": "B",
+          "reducer": "sum",
+          "settings": {
+            "mode": "replaceNN",
+            "replaceWithValue": 0
+          },
+          "hide": true
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "__expr__",
+            "uid": "__expr__"
+          },
+          "type": "math",
+          "expression": "$C / $D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "percentunit",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Distinct client IPs",
+      "description": "",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_analytics}"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 1,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "cardinality",
+              "field": "remote-address"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "9",
+              "type": "terms",
+              "field": "env-id",
+              "settings": {
+                "size": "10",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Application scorecard",
+      "description": "One line per application: volume, quality of service received, breadth of API usage, and rate-limit pressure.",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_analytics}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            },
+            {
+              "id": "2",
+              "type": "percentiles",
+              "field": "gateway-response-time-ms",
+              "settings": {
+                "percents": [
+                  "95"
+                ]
+              }
+            },
+            {
+              "id": "3",
+              "type": "cardinality",
+              "field": "api-id"
+            },
+            {
+              "id": "4",
+              "type": "sum",
+              "field": "response-content-length"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "10",
+              "type": "terms",
+              "field": "application-name.keyword",
+              "settings": {
+                "size": "100",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1",
+                "missing": "(keyless / rejected)"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api AND status:[400 TO 499]",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "10",
+              "type": "terms",
+              "field": "application-name.keyword",
+              "settings": {
+                "size": "100",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1",
+                "missing": "(keyless / rejected)"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api AND status:[500 TO 599]",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "10",
+              "type": "terms",
+              "field": "application-name.keyword",
+              "settings": {
+                "size": "100",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1",
+                "missing": "(keyless / rejected)"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api AND status:429",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "10",
+              "type": "terms",
+              "field": "application-name.keyword",
+              "settings": {
+                "size": "100",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1",
+                "missing": "(keyless / rejected)"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Bytes served"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "decbytes"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "429 (rate-limited)"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "transparent",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "5xx"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "transparent",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "Calls",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "application-name.keyword",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "application-name.keyword": "Application",
+              "Count": "Calls",
+              "Count 1": "Calls",
+              "p95.0 gateway-response-time-ms": "P95 ms",
+              "Unique Count api-id": "APIs used",
+              "Unique Count": "APIs used",
+              "Sum": "Bytes served",
+              "Sum response-content-length": "Bytes served",
+              "Count 2": "4xx",
+              "Count 3": "5xx",
+              "Count 4": "429 (rate-limited)"
+            },
+            "excludeByName": {},
+            "indexByName": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Calls by application",
+      "description": "",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_analytics}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api",
+          "alias": "{{term application-name.keyword}}",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "10",
+              "type": "terms",
+              "field": "application-name.keyword",
+              "settings": {
+                "size": "10",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1",
+                "missing": "(keyless / rejected)"
+              }
+            },
+            {
+              "id": "2",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "lineInterpolation": "smooth",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "mappings": [],
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ],
+          "sortBy": "Sum",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Rate-limited calls by application",
+      "description": "",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_analytics}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 14,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api AND status:429",
+          "alias": "{{term application-name.keyword}}",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "10",
+              "type": "terms",
+              "field": "application-name.keyword",
+              "settings": {
+                "size": "10",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1",
+                "missing": "(keyless / rejected)"
+              }
+            },
+            {
+              "id": "2",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 2,
+            "fillOpacity": 80,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "lineInterpolation": "smooth",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "mappings": [],
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ],
+          "sortBy": "Sum",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 10,
+      "type": "row",
+      "title": "Plans & subscriptions",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 22,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Plan usage",
+      "description": "",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_analytics}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 23,
+        "w": 14,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            },
+            {
+              "id": "2",
+              "type": "cardinality",
+              "field": "application-name.keyword"
+            },
+            {
+              "id": "3",
+              "type": "percentiles",
+              "field": "gateway-response-time-ms",
+              "settings": {
+                "percents": [
+                  "95"
+                ]
+              }
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "10",
+              "type": "terms",
+              "field": "api-name",
+              "settings": {
+                "size": "50",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1"
+              }
+            },
+            {
+              "id": "11",
+              "type": "terms",
+              "field": "plan-id",
+              "settings": {
+                "size": "50",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api AND status:429",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "10",
+              "type": "terms",
+              "field": "api-name",
+              "settings": {
+                "size": "50",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1"
+              }
+            },
+            {
+              "id": "11",
+              "type": "terms",
+              "field": "plan-id",
+              "settings": {
+                "size": "50",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "Calls",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "plan-id",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "api-name 1": "API",
+              "api-name": "API",
+              "plan-id": "Plan id",
+              "Count": "Calls",
+              "Count 1": "Calls",
+              "Unique Count": "Applications",
+              "Unique Count application-name.keyword": "Applications",
+              "p95.0 gateway-response-time-ms": "P95 ms",
+              "Count 2": "429"
+            },
+            "excludeByName": {
+              "api-name 2": true
+            },
+            "indexByName": {
+              "api-name 1": 0,
+              "plan-id": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "bargauge",
+      "title": "Top subscriptions by calls",
+      "description": "",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_analytics}"
+      },
+      "gridPos": {
+        "x": 14,
+        "y": 23,
+        "w": 10,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api AND _exists_:application-name",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "10",
+              "type": "terms",
+              "field": "subscription-id",
+              "settings": {
+                "size": "10",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "left",
+        "sizing": "manual",
+        "maxVizHeight": 26,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 13,
+      "type": "row",
+      "title": "Business dimensions (custom metrics)",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 32,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 14,
+      "type": "text",
+      "title": "How to add your own dimensions",
+      "gridPos": {
+        "x": 0,
+        "y": 33,
+        "w": 8,
+        "h": 10
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "\nGravitee records **API, application, plan id, subscription, geo-IP, user agent and the rejecting policy on every call \u2014 no configuration**.\n\nAdd **any business dimension** (tenant, customer, region, product\u2026) with the **Assign Metrics** policy\non an API or plan flow. Each metric lands as `custom.<name>` on the same record and appears here:\n\n```json\n{ \"policy\": \"policy-assign-metrics\",\n  \"configuration\": { \"scope\": \"REQUEST\", \"metrics\": [\n    { \"name\": \"tenant\",\n      \"value\": \"{#request.headers['X-Tenant-ID'] != null ? #request.headers['X-Tenant-ID'][0] : 'unknown'}\" },\n    { \"name\": \"plan\", \"value\": \"Gold\" } ] } }\n```\n\nAlways give the expression a fallback: a null value drops the metric.\n_Assign Metrics is an Enterprise Edition policy._\n"
+      }
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "Calls by tenant (custom.tenant)",
+      "description": "Populated by the Assign Metrics policy (custom.tenant \u2190 X-Tenant-ID header).",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_analytics}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 33,
+        "w": 8,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api AND _exists_:custom.tenant",
+          "alias": "{{term custom.tenant}}",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "10",
+              "type": "terms",
+              "field": "custom.tenant",
+              "settings": {
+                "size": "10",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1"
+              }
+            },
+            {
+              "id": "2",
+              "type": "date_histogram",
+              "field": "@timestamp",
+              "settings": {
+                "interval": "auto",
+                "min_doc_count": "0",
+                "trimEdges": "0"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "lineInterpolation": "smooth",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "mappings": [],
+          "unit": "short",
+          "noValue": "Add the Assign Metrics policy to populate (see left)"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ],
+          "sortBy": "Sum",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 16,
+      "type": "table",
+      "title": "Tenant scorecard",
+      "description": "",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_analytics}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 33,
+        "w": 8,
+        "h": 10
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api AND _exists_:custom.tenant",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            },
+            {
+              "id": "2",
+              "type": "percentiles",
+              "field": "gateway-response-time-ms",
+              "settings": {
+                "percents": [
+                  "95"
+                ]
+              }
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "10",
+              "type": "terms",
+              "field": "custom.tenant",
+              "settings": {
+                "size": "50",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api AND _exists_:custom.tenant AND status:[500 TO 599]",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "10",
+              "type": "terms",
+              "field": "custom.tenant",
+              "settings": {
+                "size": "50",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "5xx"
+            },
+            "properties": [
+              {
+                "id": "noValue",
+                "value": "0"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "Calls",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "custom.tenant",
+            "mode": "outer"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "custom.tenant": "Tenant",
+              "Count": "Calls",
+              "Count 1": "Calls",
+              "p95.0 gateway-response-time-ms": "P95 ms",
+              "Count 2": "5xx"
+            },
+            "excludeByName": {},
+            "indexByName": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "type": "bargauge",
+      "title": "Calls by plan name (custom.plan)",
+      "description": "Analytics store plan ids; stamp a readable plan name with Assign Metrics on each plan's flow.",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_analytics}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 43,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api AND _exists_:custom.plan",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "10",
+              "type": "terms",
+              "field": "custom.plan",
+              "settings": {
+                "size": "10",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "Add the Assign Metrics policy to populate (see left)"
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "left",
+        "sizing": "manual",
+        "maxVizHeight": 26,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 18,
+      "type": "piechart",
+      "title": "Calls by channel (custom.channel)",
+      "description": "",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_analytics}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 43,
+        "w": 12,
+        "h": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api AND _exists_:custom.channel",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "10",
+              "type": "terms",
+              "field": "custom.channel",
+              "settings": {
+                "size": "10",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "noValue": "Add the Assign Metrics policy to populate (see left)"
+        },
+        "overrides": []
+      },
+      "options": {
+        "pieType": "donut",
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 19,
+      "type": "row",
+      "title": "Where consumers are",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 50,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 20,
+      "type": "geomap",
+      "title": "Calls by country",
+      "description": "Calls by consumer country (Elasticsearch geo-IP on the client address; honours X-Forwarded-For).",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_analytics}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 51,
+        "w": 12,
+        "h": 11
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "10",
+              "type": "terms",
+              "field": "geoip.country_iso_code",
+              "settings": {
+                "size": "250",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "color": {
+            "mode": "continuous-BlPu"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "view": {
+          "id": "zero",
+          "lat": 25,
+          "lon": 10,
+          "zoom": 1.4,
+          "allLayers": true
+        },
+        "controls": {
+          "showZoom": true,
+          "mouseWheelZoom": false,
+          "showAttribution": false
+        },
+        "basemap": {
+          "type": "xyz",
+          "name": "Basemap",
+          "config": {
+            "url": "https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+            "attribution": "Tiles \u00a9 Esri"
+          }
+        },
+        "layers": [
+          {
+            "type": "markers",
+            "name": "Calls",
+            "tooltip": true,
+            "location": {
+              "mode": "lookup",
+              "lookup": "geoip.country_iso_code",
+              "gazetteer": "public/gazetteer/countries.json"
+            },
+            "config": {
+              "showLegend": true,
+              "style": {
+                "size": {
+                  "field": "Count",
+                  "min": 6,
+                  "max": 40,
+                  "fixed": 5
+                },
+                "color": {
+                  "fixed": "#B877D9"
+                },
+                "opacity": 0.55,
+                "text": {
+                  "mode": "field",
+                  "field": "Count",
+                  "fixed": ""
+                },
+                "symbol": {
+                  "mode": "fixed",
+                  "fixed": "img/icons/marker/circle.svg"
+                },
+                "textConfig": {
+                  "fontSize": 10,
+                  "offsetY": 0,
+                  "textAlign": "center",
+                  "textBaseline": "middle"
+                }
+              }
+            }
+          }
+        ],
+        "tooltip": {
+          "mode": "details"
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 21,
+      "type": "piechart",
+      "title": "Client OS / device",
+      "description": "",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_analytics}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 51,
+        "w": 6,
+        "h": 11
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "10",
+              "type": "terms",
+              "field": "user_agent.os_name",
+              "settings": {
+                "size": "10",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "pieType": "donut",
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 22,
+      "type": "table",
+      "title": "User agents",
+      "description": "",
+      "datasource": {
+        "type": "elasticsearch",
+        "uid": "${ds_analytics}"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 51,
+        "w": 6,
+        "h": 11
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "elasticsearch",
+            "uid": "${ds_analytics}"
+          },
+          "query": "api-name:$api",
+          "alias": "",
+          "hide": false,
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "10",
+              "type": "terms",
+              "field": "user-agent",
+              "settings": {
+                "size": "30",
+                "order": "desc",
+                "orderBy": "_count",
+                "min_doc_count": "1"
+              }
+            }
+          ],
+          "timeField": "@timestamp"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "Count",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "user-agent": "User agent"
+            },
+            "excludeByName": {},
+            "indexByName": {}
+          }
+        }
+      ]
+    }
+  ]
+}

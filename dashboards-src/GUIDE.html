@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gravitee Grafana Dashboards</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1d2330; --muted: #5b6475; --line: #e3e7ee; --card: #f6f8fb;
+    --accent: #6c3cf4; --accent-soft: #efe9ff; --code: #f1f3f7; --ok: #1f9d55; --warn: #c27c00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111318; --fg: #e6e9ef; --muted: #9aa3b2; --line: #262b36; --card: #181c24;
+      --accent: #a78bfa; --accent-soft: #241d3d; --code: #1c212b; --ok: #4ade80; --warn: #fbbf24;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111318; --fg: #e6e9ef; --muted: #9aa3b2; --line: #262b36; --card: #181c24;
+    --accent: #a78bfa; --accent-soft: #241d3d; --code: #1c212b; --ok: #4ade80; --warn: #fbbf24;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 32px 16px 80px; }
+  header.hero { border-bottom: 1px solid var(--line); padding-bottom: 24px; margin-bottom: 8px; }
+  .eyebrow { color: var(--accent); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; font-size: 13px; }
+  h1 { font-size: 34px; line-height: 1.2; margin: 6px 0 12px; }
+  h2 { font-size: 24px; margin: 48px 0 12px; padding-top: 8px; border-top: 1px solid var(--line); }
+  h3 { font-size: 19px; margin: 28px 0 8px; }
+  h4 { font-size: 16px; margin: 20px 0 6px; }
+  p, li { color: var(--fg); }
+  .lead { font-size: 18px; color: var(--muted); max-width: 760px; }
+  .foot { margin: 48px 0 24px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+  a { color: var(--accent); }
+  nav.toc { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; margin: 24px 0; }
+  nav.toc ol { margin: 6px 0 0; padding-left: 20px; columns: 2; column-gap: 32px; }
+  nav.toc li { break-inside: avoid; }
+  code { background: var(--code); padding: 1px 6px; border-radius: 4px; font: 13.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  pre { background: var(--code); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 15px; }
+  th, td { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .03em; }
+  .tablewrap { overflow-x: auto; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 16px 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+  .card b { display: block; margin-bottom: 4px; }
+  .card span { color: var(--muted); font-size: 14.5px; }
+  .callout { background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 6px; padding: 12px 16px; margin: 16px 0; }
+  .callout.warn { border-left-color: var(--warn); }
+  figure { margin: 16px 0 24px; }
+  figure img, video { width: 100%; border: 1px solid var(--line); border-radius: 8px; display: block; }
+  figure.tall img { max-height: 720px; object-fit: cover; object-position: top; }
+  figcaption { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps > li { counter-increment: step; position: relative; padding-left: 44px; margin: 0 0 18px; }
+  .steps > li::before { content: counter(step); position: absolute; left: 0; top: 0; width: 30px; height: 30px; border-radius: 50%;
+    background: var(--accent); color: #fff; font-weight: 700; display: grid; place-items: center; font-size: 15px; }
+  .tag { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 99px; background: var(--card); border: 1px solid var(--line); color: var(--muted); margin-left: 6px; vertical-align: middle; }
+  .themebtn { float: right; background: var(--card); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; cursor: pointer; font-size: 13px; }
+  @media (max-width: 640px) { nav.toc ol { columns: 1; } h1 { font-size: 27px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <button class="themebtn" id="themebtn" type="button">Toggle theme</button>
+  <div class="eyebrow">Gravitee API Management · Grafana dashboard pack</div>
+  <h1>Monitor every API, consumer and gateway from one set of dashboards</h1>
+  <p class="lead">Six linked Grafana dashboards, from the executive overview down to the headers and payloads of an individual call, with SLOs, error budgets and alert rules included. This guide covers what each dashboard answers, how to install the pack, and how to work with it day to day.</p>
+</header>
+
+<nav class="toc" aria-label="Contents">
+  <strong>Contents</strong>
+  <ol>
+    <li><a href="#tour">Video tour</a></li>
+    <li><a href="#pack">What's in the pack</a></li>
+    <li><a href="#data">Where the data comes from</a></li>
+    <li><a href="#setup">Set it up</a></li>
+    <li><a href="#interact">Work with the dashboards</a></li>
+    <li><a href="#overview">API Program Overview</a></li>
+    <li><a href="#detail">API Drill-down</a></li>
+    <li><a href="#consumers">Consumers, Plans &amp; Tenants</a></li>
+    <li><a href="#runtime">Gateway Fleet &amp; Runtime</a></li>
+    <li><a href="#slo">SLOs &amp; Error Budgets</a></li>
+    <li><a href="#logs">Call Logs</a></li>
+    <li><a href="#alerts">Alerts</a></li>
+    <li><a href="#custom">Customise</a></li>
+    <li><a href="#troubleshoot">Troubleshooting</a></li>
+  </ol>
+</nav>
+
+<section id="tour">
+  <h2>1. Video tour</h2>
+  <p>A walkthrough of all six dashboards on live demo traffic: four APIs, five consumer applications, consumers in twelve countries, rate-limit bursts and a backend incident.</p>
+  <video controls preload="metadata" poster="media/1-api-program-overview.png">
+    <source src="media/gravitee-dashboards-walkthrough.mp4" type="video/mp4">
+    Your browser cannot play the video. Open <code>media/gravitee-dashboards-walkthrough.mp4</code> directly.
+  </video>
+</section>
+
+<section id="pack">
+  <h2>2. What's in the pack</h2>
+  <div class="cards">
+    <div class="card"><b>API Program Overview</b><span>How are all my APIs doing? Who calls them, from where, and what does the gateway reject and why?</span></div>
+    <div class="card"><b>API Drill-down</b><span>What is wrong with <em>this</em> API: which path, which consumer, which call?</span></div>
+    <div class="card"><b>Consumers, Plans &amp; Tenants</b><span>Which applications and plans drive traffic, with what quality of service, and who hits their limits?</span></div>
+    <div class="card"><b>Gateway Fleet &amp; Runtime</b><span>Are the gateway nodes healthy: JVM, GC, CPU, connections, backend pool?</span></div>
+    <div class="card"><b>SLOs &amp; Error Budgets</b><span>Are we meeting 99.5% availability, how fast is the budget burning, and which API is breaching?</span></div>
+    <div class="card"><b>Call Logs</b><span>What exactly did this call send and receive, on the client side and on the backend side?</span></div>
+  </div>
+  <div class="tablewrap"><table>
+    <tr><th>Folder / file</th><th>Content</th></tr>
+    <tr><td><code>dashboards/</code></td><td>The six dashboards as Grafana JSON, ready to import or provision</td></tr>
+    <tr><td><code>prometheus-rules/</code></td><td>SLO recording rules, alert rules and an example scrape configuration</td></tr>
+    <tr><td><code>grafana-provisioning/</code></td><td>Optional provisioning files for the data sources and the dashboard folder</td></tr>
+    <tr><td><code>media/</code></td><td>Screenshots and the video tour</td></tr>
+    <tr><td><code>README.md</code></td><td>Short installation reference</td></tr>
+    <tr><td><code>GUIDE.html</code></td><td>This guide</td></tr>
+    <tr><td><code>LICENSE</code></td><td>Apache License 2.0</td></tr>
+  </table></div>
+</section>
+
+<section id="data">
+  <h2>3. Where the data comes from</h2>
+  <p>The dashboards combine four sources that Gravitee already produces. Nothing is added to the request path.</p>
+  <div class="tablewrap"><table>
+    <tr><th>Source</th><th>What it holds</th><th>Used for</th></tr>
+    <tr><td><b>API analytics</b><br><code>gravitee-v4-metrics-*</code> (Elasticsearch / OpenSearch)</td>
+        <td>One record per API call: API, application, plan, subscription, status, total / backend / gateway latency, backend connect time and time-to-first-byte, payload sizes, rejection reason and rejecting policy, client country and city, user agent, URI, transaction id</td>
+        <td>Everything per API, per consumer and per call</td></tr>
+    <tr><td><b>Gateway metrics</b><br>Prometheus endpoint <code>/_node/metrics/prometheus</code></td>
+        <td>Real-time gateway-wide request rates and status codes, connections, backend HTTP client, JVM heap / GC / threads, CPU, file descriptors</td>
+        <td>Fleet health, real-time throughput, SLO burn rates, alerts</td></tr>
+    <tr><td><b>Node monitoring</b><br><code>gravitee-monitor-*</code> (Elasticsearch / OpenSearch)</td>
+        <td>Per-node JVM, CPU and memory snapshots written by every gateway</td>
+        <td>Fleet view even where Prometheus is not deployed</td></tr>
+    <tr><td><b>Call logs</b> (optional)<br><code>gravitee-v4-log-*</code> (Elasticsearch / OpenSearch)</td>
+        <td>Headers and payloads of each logged call, as received from the client, sent to the backend, returned by the backend and returned to the client. Written only for APIs with logging enabled.</td>
+        <td>The Call Logs dashboard and the <i>Request id</i> links in the Drill-down</td></tr>
+  </table></div>
+  <div class="callout"><b>No exporters to configure.</b> API, application, plan, latency split, rejection reason, geo-IP and user agent are recorded for every call out of the box. The per-consumer and per-path views work as soon as the data sources are connected.</div>
+</section>
+
+<section id="setup">
+  <h2>4. Set it up</h2>
+  <h3>Requirements</h3>
+  <div class="tablewrap"><table>
+    <tr><th>Component</th><th>Version / setting</th></tr>
+    <tr><td>Gravitee APIM</td><td>4.x with v4 APIs (the dashboards read <code>gravitee-v4-metrics-*</code>)</td></tr>
+    <tr><td>Analytics reporter</td><td>Elasticsearch or OpenSearch (the default APIM reporter)</td></tr>
+    <tr><td>Grafana</td><td>10.4 or later (validated on 12.2)</td></tr>
+    <tr><td>Prometheus</td><td>2.40 or later (validated on 3.5)</td></tr>
+  </table></div>
+
+  <h3>Steps</h3>
+  <ol class="steps">
+    <li>
+      <h4>Enable the gateway metrics endpoint</h4>
+      <p>In <code>gravitee.yml</code> (or the equivalent Helm values / environment variables):</p>
+<pre><code>services:
+  metrics:
+    enabled: true
+    prometheus:
+      enabled: true
+  core:
+    http:
+      host: 0.0.0.0          # reachable by Prometheus (default: localhost only)
+      port: 18082
+      authentication:
+        type: basic
+        users:
+          admin: &lt;choose-a-password&gt;</code></pre>
+      <p>With Docker or Kubernetes environment variables: <code>gravitee_services_metrics_enabled=true</code>, <code>gravitee_services_metrics_prometheus_enabled=true</code>, <code>gravitee_services_core_http_host=0.0.0.0</code>. Keep port 18082 on a private network: it is the gateway's internal API.</p>
+    </li>
+    <li>
+      <h4>Scrape the gateways with Prometheus and load the rules</h4>
+<pre><code>rule_files:
+  - /etc/prometheus/rules/*.yml          # copy prometheus-rules/*.rules.yml here
+
+scrape_configs:
+  - job_name: gravitee                   # keep this name: rules and dashboards use it
+    metrics_path: /_node/metrics/prometheus
+    basic_auth: { username: admin, password: &lt;password&gt; }
+    static_configs:
+      - targets: ['gateway-1:18082', 'gateway-2:18082']</code></pre>
+      <p>On Kubernetes, use your usual service discovery and keep <code>job="gravitee"</code>.</p>
+    </li>
+    <li>
+      <h4>Add the data sources in Grafana</h4>
+      <div class="tablewrap"><table>
+        <tr><th>Type</th><th>Index / URL</th><th>Time field</th></tr>
+        <tr><td>Elasticsearch: <i>API analytics</i></td><td><code>gravitee-v4-metrics-*</code></td><td><code>@timestamp</code></td></tr>
+        <tr><td>Elasticsearch: <i>node monitoring</i></td><td><code>gravitee-monitor-*</code></td><td><code>@timestamp</code></td></tr>
+        <tr><td>Elasticsearch: <i>call logs</i> (optional)</td><td><code>gravitee-v4-log-*</code></td><td><code>@timestamp</code></td></tr>
+        <tr><td>Prometheus</td><td>Your Prometheus URL</td><td>–</td></tr>
+      </table></div>
+      <p>Name them as you like: each dashboard has drop-downs to pick them. To provision them instead, adapt <code>grafana-provisioning/datasources/*.yml</code>.</p>
+    </li>
+    <li>
+      <h4>Import the dashboards</h4>
+      <p>In Grafana: <b>Dashboards → New → Import → Upload dashboard JSON file</b>, once for each file in <code>dashboards/</code>. Alternatively, mount the folder and use <code>grafana-provisioning/dashboards/gravitee.yml</code>. All six are tagged <code>gravitee</code> and linked to each other.</p>
+    </li>
+    <li>
+      <h4>Pick the data sources and check</h4>
+      <p>Open <b>Gravitee · API Program Overview</b> and select your data sources in the top bar. The <i>API calls</i> and <i>Gateway nodes up</i> tiles should show values within a minute. If they don't, see <a href="#troubleshoot">Troubleshooting</a>.</p>
+    </li>
+    <li>
+      <h4>Optional: enable call logging on the APIs to inspect</h4>
+      <p>In the console: <b>APIs → your API → Logs → Configure Reporting</b>, turn logging on, and choose what to log (client side and/or backend side, request and/or response, headers and/or payload) and, ideally, a condition. Through the Management API, the API's <code>analytics.logging</code> block:</p>
+<pre><code>"logging": {
+  "mode":    { "entrypoint": true, "endpoint": true },
+  "phase":   { "request": true, "response": true },
+  "content": { "headers": true, "payload": true },
+  "condition": "{#request.headers['X-Debug'] != null}" }</code></pre>
+      <p>The condition is evaluated when the request arrives, before plan selection, so it can select on the request (a header, a path, a method, a time window with <code>#request.timestamp</code>) but not on the response status or the application. The demo logs a fixed 1-in-5 sample with <code>{#request.id.hashCode() % 5 == 0}</code>. A logged call takes about 2 KB, against a few hundred bytes for its analytics record: log what you need, for as long as you need it.</p>
+    </li>
+  </ol>
+</section>
+
+<section id="interact">
+  <h2>5. Work with the dashboards</h2>
+  <div class="tablewrap"><table>
+    <tr><th>Control</th><th>What it does</th></tr>
+    <tr><td><b>Data source drop-downs</b></td><td>Select the analytics, node-monitoring and Prometheus data sources, e.g. to switch between environments that report to different clusters</td></tr>
+    <tr><td><b>API</b> selector</td><td>Restricts every analytics panel to one or more APIs. On the Drill-down, it picks the API to investigate.</td></tr>
+    <tr><td><b>Filter (any field)</b></td><td>Adds conditions on any analytics field and applies them to every panel. Useful fields: <code>application-name.keyword</code>, <code>plan-id</code>, <code>status</code>, <code>error-key</code>, <code>geoip.country_iso_code</code>, <code>http-method</code>, <code>custom.tenant</code>.</td></tr>
+    <tr><td><b>Node</b> selector (Runtime)</td><td>Focuses on one or more gateway instances</td></tr>
+    <tr><td><b>Time picker / refresh</b></td><td>Every panel follows the selected range. Drag across a chart to zoom into an incident; the browser Back button returns.</td></tr>
+    <tr><td><b>Click an API name</b></td><td>Opens the API Drill-down for that API, with the same time range and data sources (in the latency table, leaderboards and SLO table)</td></tr>
+    <tr><td><b>Gravitee dashboards</b> menu</td><td>Moves between the six dashboards while keeping the time range and selections</td></tr>
+    <tr><td><b>Click a logged call</b></td><td>In the Drill-down's <i>Call logs of this API</i> and in Call Logs, the time, URI and request id of a call open its headers and payloads in the <i>Call detail</i> section. In the Drill-down's failed and slow calls, the request id does the same when the call was logged.</td></tr>
+    <tr><td><b>Call logs of this API</b> button</td><td>At the top of the Drill-down: opens Call Logs filtered on the selected API</td></tr>
+    <tr><td><b>Search</b> (Call Logs)</td><td>A Lucene query on the logged calls: payload content with wildcards (<code>*ORD-1234*</code>) or any field (<code>entrypoint-response.status:503</code>)</td></tr>
+    <tr><td><b>Legend</b></td><td>Click a series to isolate it; Ctrl/Cmd-click to add or remove series. Table legends sort by mean, max or total.</td></tr>
+    <tr><td><b>Table columns</b></td><td>Click a header to sort; use the funnel icon to filter values</td></tr>
+    <tr><td><b>ⓘ icon</b></td><td>Every non-obvious panel explains what it measures and how to read it</td></tr>
+    <tr><td><b>Panel menu → Inspect → Data</b></td><td>Shows or downloads the numbers behind any panel as CSV</td></tr>
+    <tr><td><b>View panel (v) / Kiosk (Esc)</b></td><td>Full-screen a single panel, or the whole dashboard for a NOC screen</td></tr>
+  </table></div>
+  <div class="callout"><b>A typical investigation:</b> an alert fires → <i>SLOs &amp; Error Budgets</i> shows which API is burning budget → click it → the <i>API Drill-down</i> shows which path and which applications are affected, whether time is spent in the backend or the gateway, and lists the failing calls → click a logged call to see exactly what the client sent, what the backend received and what it answered, in <i>Call Logs</i>.</div>
+</section>
+
+<section id="overview">
+  <h2>6. API Program Overview <span class="tag">home</span></h2>
+  <p>The view to open first, and the one to put on a screen. It answers: <i>are our APIs healthy, who uses them, and what is the gateway protecting us from?</i></p>
+  <figure class="tall"><img src="media/1-api-program-overview.png" alt="API Program Overview dashboard"><figcaption>API Program Overview: KPIs, traffic, latency attribution, leaderboards, policy outcomes, geography.</figcaption></figure>
+  <div class="tablewrap"><table>
+    <tr><th>Section</th><th>What it shows</th><th>How to read it</th></tr>
+    <tr><td>At a glance</td><td>Calls, availability, 5xx / 4xx share, P95 response time, P95 gateway overhead, active APIs and applications, rate-limited calls, rejected credentials, data served, gateway nodes up</td><td>Colours switch at sensible defaults (e.g. availability under 99.5% turns orange). 4xx are consumer-side errors and do not count against availability.</td></tr>
+    <tr><td>Traffic</td><td>Calls by status class and by API; 5xx rate per API; real-time gateway throughput from Prometheus</td><td>A 5xx spike confined to one API points to that API's backend; a spike across all APIs points to the platform.</td></tr>
+    <tr><td>Latency attribution</td><td>Percentiles seen by consumers; total vs backend vs <b>gateway overhead</b>; share of time spent in each; latency table per API</td><td>If total follows backend, the slowness is upstream. If total follows gateway overhead, review the policies on that API (transformations, callouts, caching).</td></tr>
+    <tr><td>Leaderboards</td><td>Top APIs by calls, 5xx and P95; top applications, plans and paths</td><td>Click an API to drill down.</td></tr>
+    <tr><td>Policy &amp; security outcomes</td><td>Rejections by <b>reason</b> (Gravitee error key) and by <b>policy</b>; 429s by application; credential failures by API; backend failures by API and status</td><td>Distinguishes "the gateway blocked it" (rate limit, invalid key, JWT) from "the backend failed". Rising 429s for an application usually mean it has outgrown its plan.</td></tr>
+    <tr><td>Consumers &amp; geography</td><td>World map, top countries with their P95, client types</td><td>Regional latency differences show up in the P95 column.</td></tr>
+  </table></div>
+  <figure><img src="media/6-calls-by-country-map.png" alt="World map of API calls by country"><figcaption>Calls by country, from the client IP (honours <code>X-Forwarded-For</code>).</figcaption></figure>
+</section>
+
+<section id="detail">
+  <h2>7. API Drill-down</h2>
+  <p>Everything about one API, down to individual calls. Choose it with the <b>API</b> selector, or click an API name anywhere else.</p>
+  <figure class="tall"><img src="media/2-api-drill-down.png" alt="API Drill-down dashboard"><figcaption>API Drill-down for Payments API, down to its call logs.</figcaption></figure>
+  <div class="tablewrap"><table>
+    <tr><th>Section</th><th>What it shows</th></tr>
+    <tr><td>API health</td><td>Calls, availability, error rate, P95 total / backend / gateway overhead</td></tr>
+    <tr><td>Traffic &amp; errors</td><td>Status classes and exact status codes over time, HTTP methods, rejection reasons, payload sizes</td></tr>
+    <tr><td>Latency deep-dive</td><td>P95 split into total, backend, backend time-to-first-byte, backend connect and gateway overhead; a heatmap of response times; a per-path table with calls, P50 / P95 / max and 5xx</td></tr>
+    <tr><td>Consumers of this API</td><td>Applications with their calls, P95 and errors; traffic by application, plan, country and client type</td></tr>
+    <tr><td>Investigate</td><td>The latest failed calls and the calls slower than 500 ms, with time, <b>request id</b>, status, method, URI, error key, application, plan, timings and client IP. Click the request id to open the call log, when the call was logged.</td></tr>
+    <tr><td>Call logs of this API</td><td>This API's failed calls and latest calls <b>that have a call log</b>. Click a row's time, URI or request id to see its headers and payloads in <i>Call Logs</i>. Empty when logging isn't enabled on the API.</td></tr>
+  </table></div>
+  <div class="callout"><b>From a chart to a payload:</b> in the Drill-down, scroll to <i>Call logs of this API</i> and click the time of a failed call: Call Logs opens on that call, with its body and headers at each hop in the <i>Call detail</i> section. The <b>Call logs of this API</b> button at the top opens Call Logs filtered on the API.</div>
+  <div class="callout">Connect-time spikes point to network, DNS or TLS problems towards the backend. A rising TTFB with flat connect time means the backend itself is slow. Horizontal bands in the heatmap reveal two populations of calls, e.g. cache hits and misses.</div>
+</section>
+
+<section id="consumers">
+  <h2>8. Consumers, Plans &amp; Tenants</h2>
+  <p>The business view: who consumes the APIs, on which plans, with what experience. Useful for API product managers, partner managers and capacity planning.</p>
+  <figure class="tall"><img src="media/3-consumers-plans-tenants.png" alt="Consumers, Plans and Tenants dashboard"><figcaption>Application scorecard, plan usage, business dimensions and geography.</figcaption></figure>
+  <ul>
+    <li><b>Application scorecard</b>: one line per application with calls, P95, number of APIs used, bytes served, 4xx, 5xx and rate-limited calls.</li>
+    <li><b>Plans &amp; subscriptions</b>: usage per API and plan, the number of applications on each plan, and the most active subscriptions.</li>
+    <li><b>Business dimensions</b>: traffic and quality of service by tenant, channel and plan name, or any value you choose. These are recorded with the Assign Metrics policy (see <a href="#custom">Customise</a>).</li>
+    <li><b>Where consumers are</b>: map, operating systems and devices, user agents.</li>
+  </ul>
+</section>
+
+<section id="runtime">
+  <h2>9. Gateway Fleet &amp; Runtime</h2>
+  <p>The platform-operations view, from Prometheus and the gateways' own node monitoring.</p>
+  <figure class="tall"><img src="media/4-gateway-fleet-runtime.png" alt="Gateway Fleet and Runtime dashboard"><figcaption>Fleet table, inbound and outbound traffic, JVM, host.</figcaption></figure>
+  <div class="tablewrap"><table>
+    <tr><th>Section</th><th>Watch for</th></tr>
+    <tr><td>Fleet at a glance</td><td>Nodes down, uneven load across nodes, heap above 75%, a recent restart (low uptime)</td></tr>
+    <tr><td>Inbound traffic</td><td>Request rate and status codes per node, average and max response time, client connections, network throughput</td></tr>
+    <tr><td>Outbound traffic</td><td>The gateway's calls to backends: status, response time, connection pool. A pool pinned at its maximum while latency rises means backend saturation.</td></tr>
+    <tr><td>JVM</td><td>Heap against its maximum, GC time per second (sustained above 5% hurts tail latency), allocation rate, threads, off-heap buffers</td></tr>
+    <tr><td>Host &amp; process</td><td>CPU, load against CPU count, open file descriptors (sockets count)</td></tr>
+    <tr><td>Node monitoring</td><td>Heap, OS memory and CPU per node from Elasticsearch: available even without Prometheus</td></tr>
+  </table></div>
+</section>
+
+<section id="slo">
+  <h2>10. SLOs &amp; Error Budgets</h2>
+  <p>Turns monitoring into commitments. The default objective is <b>99.5% of calls without a server error over 30 days</b>, an error budget of 0.5%.</p>
+  <figure><img src="media/5-slos-error-budgets.png" alt="SLOs and Error Budgets dashboard"><figcaption>Gateway-wide SLI, error budget, burn rates and per-API compliance.</figcaption></figure>
+  <ul>
+    <li><b>Availability SLI (30d)</b> and <b>Error budget remaining</b>: where the platform stands against the monthly objective.</li>
+    <li><b>Error budget burn rate</b>: 1× means the budget will last exactly the month. 14.4× sustained for an hour consumes 2% of the monthly budget and pages someone; 6× over six hours raises a ticket.</li>
+    <li><b>Per-API SLO compliance</b>: availability, share of the error budget used, P95 / P99 and slow calls for each API over the selected range. Above 100% budget used, that API breached its objective for the period.</li>
+    <li><b>Firing SLO alerts</b>: alerts currently firing from the bundled rules.</li>
+  </ul>
+</section>
+
+<section id="logs">
+  <h2>11. Call Logs</h2>
+  <p>The forensic view: what exactly went over the wire for a given call. It reads the call logs Gravitee writes for APIs with logging enabled (see <a href="#setup">Set it up</a>, step 6). In the demo, 1 call in 5 is logged on every API.</p>
+  <figure class="tall"><img src="media/7-call-logs.png" alt="Call Logs dashboard"><figcaption>Logged calls, the failed-call list and the hop-by-hop detail of one call.</figcaption></figure>
+  <div class="tablewrap"><table>
+    <tr><th>Section</th><th>What it shows</th></tr>
+    <tr><td>Logged calls</td><td>Number of logged calls and the share of all calls they represent, logged failures, calls the Gateway answered itself (rejected before reaching the backend), and rejections by error key</td></tr>
+    <tr><td>Call log explorer</td><td>The latest logged failed calls and all logged calls, with client status and <b>backend status</b> side by side. <i>not called</i> means the Gateway rejected the call (plan security, rate limit).</td></tr>
+    <tr><td>Call detail</td><td>One call (the one whose request id you clicked, or the latest): a summary, the body at each of the four hops, and the headers at each hop</td></tr>
+  </table></div>
+  <div class="callout"><b>Hop by hop:</b> 1. client → Gateway, 2. Gateway → backend, 3. backend → Gateway, 4. Gateway → client. Comparing 1 with 2, or 3 with 4, shows what the policies changed: a transformation, a removed or masked field, an added header. A 502 with a body at hop 3 is the backend's own error; a 401 with <i>not called</i> never reached the backend.</div>
+  <div class="callout"><b>Sensitive data.</b> Call logs can contain personal data and credentials. The dashboard hides API keys, <code>Authorization</code> and cookie headers, but they are stored in the index: give the call-logs data source to the people who need it only, and keep the index's retention short.</div>
+</section>
+
+<section id="alerts">
+  <h2>12. Alerts</h2>
+  <p><code>prometheus-rules/gravitee-alerts.rules.yml</code> contains alerts ready to route with Alertmanager (or Grafana alerting):</p>
+  <div class="tablewrap"><table>
+    <tr><th>Alert</th><th>Fires when</th><th>Severity</th></tr>
+    <tr><td><code>GraviteeGatewayDown</code></td><td>A gateway cannot be scraped for 1 minute</td><td>critical</td></tr>
+    <tr><td><code>GraviteeErrorBudgetFastBurn</code></td><td>Burn rate above 14.4× on both the 5-minute and 1-hour windows</td><td>critical</td></tr>
+    <tr><td><code>GraviteeErrorBudgetSlowBurn</code></td><td>Burn rate above 6× on both the 30-minute and 6-hour windows</td><td>warning</td></tr>
+    <tr><td><code>GraviteeHighLatency</code></td><td>Average response time above 500 ms for 5 minutes</td><td>warning</td></tr>
+    <tr><td><code>GraviteeHeapPressure</code></td><td>Heap above 90% for 10 minutes</td><td>warning</td></tr>
+    <tr><td><code>GraviteeGcPressure</code></td><td>More than 10% of time in GC for 10 minutes</td><td>warning</td></tr>
+    <tr><td><code>GraviteeHighCpu</code></td><td>Process CPU above 85% for 10 minutes</td><td>warning</td></tr>
+    <tr><td><code>GraviteeBackendErrors</code></td><td>More than 10% of backend calls return 5xx for 5 minutes</td><td>warning</td></tr>
+  </table></div>
+</section>
+
+<section id="custom">
+  <h2>13. Customise</h2>
+  <h3>Add business dimensions <span class="tag">Enterprise</span></h3>
+  <p>The <b>Assign Metrics</b> policy records any value on the call's analytics record as <code>custom.&lt;name&gt;</code>. Add it to an API or plan flow:</p>
+<pre><code>{ "policy": "policy-assign-metrics",
+  "configuration": { "scope": "REQUEST", "metrics": [
+    { "name": "tenant",
+      "value": "{#request.headers['X-Tenant-ID'] != null ? #request.headers['X-Tenant-ID'][0] : 'unknown'}" },
+    { "name": "plan", "value": "Gold" } ] } }</code></pre>
+  <ul>
+    <li>Always give the expression a fallback: a null value drops the metric.</li>
+    <li>A literal value on each plan's flow (<code>"plan": "Gold"</code>) gives readable plan names in every plan panel. Without it, plans appear by id.</li>
+    <li>New dimensions can be used straight away in the <b>Filter</b> bar (e.g. <code>custom.tenant = acme-bank</code>). To chart one, duplicate a tenant panel and change the field.</li>
+  </ul>
+  <h3>Change objectives and thresholds</h3>
+  <ul>
+    <li><b>SLO objective</b>: replace <code>0.005</code> in <code>gravitee-slo.rules.yml</code> (e.g. <code>0.001</code> for 99.9%) and in the "Error budget used" calculation of the per-API SLO table.</li>
+    <li><b>Colour thresholds</b>: edit a panel → <i>Thresholds</i>. Defaults: response time 300 ms / 1 s, gateway overhead 20 / 50 ms, heap 75 / 90%.</li>
+    <li><b>Alert thresholds</b>: edit <code>gravitee-alerts.rules.yml</code>.</li>
+  </ul>
+</section>
+
+<section id="troubleshoot">
+  <h2>14. Troubleshooting</h2>
+  <div class="tablewrap"><table>
+    <tr><th>Symptom</th><th>Check</th></tr>
+    <tr><td>Analytics panels empty</td><td>The analytics data source points to <code>gravitee-v4-metrics-*</code> with time field <code>@timestamp</code>; the APIs are v4 APIs; analytics are enabled on the API; the time range covers traffic.</td></tr>
+    <tr><td>Prometheus panels empty / "Gateway nodes up" is 0</td><td>The metrics service is enabled; the internal API listens on <code>0.0.0.0</code>; the scrape job is named <code>gravitee</code>; the basic-auth credentials match. Check the target in Prometheus → Status → Targets.</td></tr>
+    <tr><td>Throughput looks higher than expected</td><td>Only series with <code>local</code> ending in <code>:8082</code> are API traffic. If your gateway listens on another port, replace <code>:8082</code> in the queries and the rules.</td></tr>
+    <tr><td>SLO panels empty</td><td>The recording rules are loaded (Prometheus → Status → Rules). The 30-day SLI needs history, so it fills in progressively.</td></tr>
+    <tr><td>Tenant / plan-name / channel panels empty</td><td>They need the Assign Metrics policy (see <a href="#custom">Customise</a>).</td></tr>
+    <tr><td>World map without a background</td><td>The basemap uses public Esri tiles; the browser needs internet access to <code>services.arcgisonline.com</code>.</td></tr>
+    <tr><td>Call Logs empty</td><td>Logging is enabled on the API and its condition matches some calls; the call-logs data source points to <code>gravitee-v4-log-*</code>. A request id opened from the Drill-down shows nothing when that call was not logged.</td></tr>
+    <tr><td>Call Logs search finds nothing</td><td>Payloads are split on spaces only, so use wildcards: <code>*EUR*</code> rather than <code>EUR</code>. Headers are stored but not searchable.</td></tr>
+    <tr><td>v2 (legacy) APIs missing</td><td>v2 APIs report to <code>gravitee-request-*</code> and <code>gravitee-log-*</code> with a different schema and are not covered by this pack.</td></tr>
+  </table></div>
+</section>
+
+<p class="foot">Source, demo stack and new releases: <a href="https://github.com/gravitee-io-labs/gravitee-grafana-prometheus">github.com/gravitee-io-labs/gravitee-grafana-prometheus</a> · Apache License 2.0</p>
+</div>
+<script>
+  (function () {
+    var root = document.documentElement, key = 'gravitee-guide-theme';
+    try { var saved = localStorage.getItem(key); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+    document.getElementById('themebtn').addEventListener('click', function () {
+      var dark = root.getAttribute('data-theme') ? root.getAttribute('data-theme') === 'dark'
+        : window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var next = dark ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem(key, next); } catch (e) {}
+    });
+  })();
+</script>
+</body>
+</html>

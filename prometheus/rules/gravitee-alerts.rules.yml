@@ -1,0 +1,68 @@
+# Alerts for Gravitee APIM gateways. Route them with Alertmanager (or Grafana alerting).
+groups:
+  - name: gravitee-gateway
+    rules:
+      - alert: GraviteeGatewayDown
+        expr: up{job="gravitee"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "Gravitee gateway {{ $labels.instance }} is not reachable"
+          description: "Prometheus cannot scrape the gateway internal API for more than 1 minute."
+
+      - alert: GraviteeErrorBudgetFastBurn
+        expr: gravitee:error_burn_rate:5m > 14.4 and gravitee:error_burn_rate:1h > 14.4
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "API error budget burning fast ({{ $value | printf \"%.1f\" }}x)"
+          description: "At this pace 2% of the 30-day error budget is consumed every hour (5xx share above 7.2%)."
+
+      - alert: GraviteeErrorBudgetSlowBurn
+        expr: gravitee:error_burn_rate:30m > 6 and gravitee:error_burn_rate:6h > 6
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "API error budget burning ({{ $value | printf \"%.1f\" }}x)"
+          description: "Sustained 5xx rate above 3%: 5% of the 30-day budget consumed every 6 hours."
+
+      - alert: GraviteeHighLatency
+        expr: |
+          sum(rate(http_server_response_time_seconds_sum{local=~".*:8082"}[5m]))
+            / sum(rate(http_server_response_time_seconds_count{local=~".*:8082"}[5m])) > 0.5
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Average API response time above 500 ms"
+
+      - alert: GraviteeHeapPressure
+        expr: |
+          sum by (instance) (jvm_memory_used_bytes{area="heap"})
+            / sum by (instance) (jvm_memory_max_bytes{area="heap"} > 0) > 0.9
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Gateway {{ $labels.instance }} heap above 90% for 10 minutes"
+
+      - alert: GraviteeGcPressure
+        expr: sum by (instance) (rate(jvm_gc_pause_seconds_sum[5m])) > 0.1
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Gateway {{ $labels.instance }} spends more than 10% of its time in GC"
+
+      - alert: GraviteeHighCpu
+        expr: process_cpu_usage > 0.85
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Gateway {{ $labels.instance }} CPU above 85%"
+
+      - alert: GraviteeBackendErrors
+        expr: |
+          sum by (instance) (rate(http_client_requests_total{code=~"5.."}[5m]))
+            / sum by (instance) (rate(http_client_requests_total[5m])) > 0.1
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "More than 10% of backend calls from {{ $labels.instance }} return 5xx"
