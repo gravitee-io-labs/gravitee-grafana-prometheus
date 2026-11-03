@@ -1,0 +1,3190 @@
+{
+  "uid": "gravitee-otel-overview",
+  "title": "Gravitee OTel \u00b7 API Program Overview",
+  "description": "Every API managed by Gravitee APIM, from its OpenTelemetry signals: traffic, availability, latency attribution, consumers and policy outcomes. No Elasticsearch.",
+  "tags": [
+    "gravitee-otel"
+  ],
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m"
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "Gravitee dashboards",
+      "type": "dashboards",
+      "tags": [
+        "gravitee-otel"
+      ],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "icon": "external link"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "ds_prom",
+        "label": "Metrics (Prometheus)",
+        "type": "datasource",
+        "query": "prometheus",
+        "regex": "",
+        "current": {
+          "text": "prometheus",
+          "value": "prometheus"
+        },
+        "hide": 0,
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "ds_loki",
+        "label": "Call logs (Loki)",
+        "type": "datasource",
+        "query": "loki",
+        "regex": "",
+        "current": {
+          "text": "gravitee-loki",
+          "value": "gravitee-loki"
+        },
+        "hide": 0,
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "ds_tempo",
+        "label": "Traces (Tempo)",
+        "type": "datasource",
+        "query": "tempo",
+        "regex": "",
+        "current": {
+          "text": "gravitee-tempo",
+          "value": "gravitee-tempo"
+        },
+        "hide": 0,
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "api",
+        "label": "API",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${ds_prom}"
+        },
+        "query": {
+          "query": "label_values(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\"}, gravitee_api_name)",
+          "refId": "api"
+        },
+        "definition": "label_values(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\"}, gravitee_api_name)",
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 2,
+      "type": "row",
+      "title": "At a glance",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "API calls",
+      "description": "API calls handled by the Gateway in the selected range, from its OpenTelemetry spans.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sum(increase(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__range]))",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1f60c4",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Availability (non-5xx)",
+      "description": "Share of calls that did NOT end in a 5xx. 4xx are the consumer's fault and don't count.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "1 - (sum(increase(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\", http_status_code=~\"5..\"}[$__range])) or vector(0)) / sum(increase(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__range]))",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "percentunit",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.99
+              },
+              {
+                "color": "green",
+                "value": 0.995
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Server errors (5xx)",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "(sum(increase(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\", http_status_code=~\"5..\"}[$__range])) or vector(0)) / sum(increase(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__range]))",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "percentunit",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.01
+              },
+              {
+                "color": "red",
+                "value": 0.05
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Client errors (4xx)",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "(sum(increase(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\", http_status_code=~\"4..\"}[$__range])) or vector(0)) / sum(increase(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__range]))",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "percentunit",
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 0.25
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "P95 response time",
+      "description": "95th percentile of the time seen by the consumer, from the span histograms.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(gravitee_duration_milliseconds_bucket{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__range])))",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "ms",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 300
+              },
+              {
+                "color": "red",
+                "value": 1000
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "Gateway overhead (avg)",
+      "description": "Average time spent inside Gravitee (policies, security, routing): server span minus backend span. An average, because percentiles can't be subtracted.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 1,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "clamp_min(sum (rate(gravitee_duration_milliseconds_sum{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__range])) / sum (rate(gravitee_duration_milliseconds_count{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__range])) - sum (rate(gravitee_duration_milliseconds_sum{span_kind=\"SPAN_KIND_CLIENT\", gravitee_api_name=~\"$api\"}[$__range])) / sum (rate(gravitee_duration_milliseconds_count{span_kind=\"SPAN_KIND_CLIENT\", gravitee_api_name=~\"$api\"}[$__range])), 0)",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "ms",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 20
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Active APIs",
+      "description": "APIs that received at least one call in the range.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "count(sum by (gravitee_api_name) (increase(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__range])) > 0)",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "Active applications",
+      "description": "Subscribed applications that called an API (keyless traffic excluded).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 4,
+        "y": 5,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "count(sum by (gravitee_application_name) (increase(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\", gravitee_application_name!=\"\"}[$__range])) > 0)",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "Rate-limited calls (429)",
+      "description": "Calls rejected by rate-limit / quota policies: usually a consumer that needs a bigger plan.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 5,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sum(increase(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\", http_status_code=\"429\"}[$__range])) or vector(0)",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "Rejected credentials (401/403)",
+      "description": "Calls refused by plan security (missing or invalid API key, JWT, OAuth2 token) or access control.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 5,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sum(increase(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\", http_status_code=~\"40[13]\"}[$__range])) or vector(0)",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "Logged calls",
+      "description": "Calls with OTel logs (payloads) in Loki, per each API's logging condition.",
+      "datasource": {
+        "type": "loki",
+        "uid": "${ds_loki}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 5,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "${ds_loki}"
+          },
+          "expr": "sum(count_over_time({service_name=\"gio-apim-gateway\"} | gravitee_api_name=~\"$api\" | gravitee_log_type=\"entrypoint-response\" [$__range]))",
+          "legendFormat": "",
+          "queryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 14,
+      "type": "stat",
+      "title": "Gateway nodes up",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 20,
+        "y": 5,
+        "w": 4,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "count(up{job=\"gravitee\"} == 1)",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 15,
+      "type": "row",
+      "title": "Traffic",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "Calls by status class",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sum(rate(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\", http_status_code=~\"2..\"}[$__rate_interval]))",
+          "legendFormat": "2xx",
+          "hide": false,
+          "range": true
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sum(rate(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\", http_status_code=~\"3..\"}[$__rate_interval]))",
+          "legendFormat": "3xx",
+          "hide": false,
+          "range": true
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sum(rate(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\", http_status_code=~\"4..\"}[$__rate_interval]))",
+          "legendFormat": "4xx",
+          "hide": false,
+          "range": true
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sum(rate(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\", http_status_code=~\"5..\"}[$__rate_interval]))",
+          "legendFormat": "5xx",
+          "hide": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 2,
+            "fillOpacity": 80,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "lineInterpolation": "smooth",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "mappings": [],
+          "unit": "reqps"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "2xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "3xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "4xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "5xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "sortBy": "Mean",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "Calls by API",
+      "description": "Click a series name to isolate it.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 10,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sum by (gravitee_api_name) (rate(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__rate_interval]))",
+          "legendFormat": "{{gravitee_api_name}}",
+          "hide": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "lineInterpolation": "smooth",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "mappings": [],
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "sortBy": "Mean",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 18,
+      "type": "timeseries",
+      "title": "Server error rate by API (5xx %)",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "(sum by (gravitee_api_name) (rate(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\", http_status_code=~\"5..\"}[1m])) or sum by (gravitee_api_name) (rate(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[1m])) * 0) / sum by (gravitee_api_name) (rate(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[1m]))",
+          "legendFormat": "{{gravitee_api_name}}",
+          "hide": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "lineInterpolation": "smooth",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "mappings": [],
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "sortBy": "Mean",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 19,
+      "type": "timeseries",
+      "title": "Gateway throughput by status code",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 18,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sum by (http_status_code) (rate(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__rate_interval]))",
+          "legendFormat": "{{http_status_code}}",
+          "hide": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "lineInterpolation": "smooth",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "mappings": [],
+          "unit": "reqps"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/^2/"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/^4/"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "/^5/"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "sortBy": "Mean",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 20,
+      "type": "row",
+      "title": "Latency attribution \u2014 gateway vs backend",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 26,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "Response time percentiles (consumer view)",
+      "description": "End-to-end time observed by the consumer.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 27,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(gravitee_duration_milliseconds_bucket{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__rate_interval])))",
+          "legendFormat": "P50",
+          "hide": false,
+          "range": true
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(gravitee_duration_milliseconds_bucket{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__rate_interval])))",
+          "legendFormat": "P95",
+          "hide": false,
+          "range": true
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "histogram_quantile(0.99, sum by (le) (rate(gravitee_duration_milliseconds_bucket{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__rate_interval])))",
+          "legendFormat": "P99",
+          "hide": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "lineInterpolation": "smooth",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "mappings": [],
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "sortBy": "Mean",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 22,
+      "type": "timeseries",
+      "title": "P95: total vs backend, and gateway overhead",
+      "description": "If 'Total' moves with 'Backend', the slowness is upstream. If it moves with the overhead, look at policies.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 27,
+        "w": 8,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(gravitee_duration_milliseconds_bucket{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__rate_interval])))",
+          "legendFormat": "Total (P95)",
+          "hide": false,
+          "range": true
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(gravitee_duration_milliseconds_bucket{span_kind=\"SPAN_KIND_CLIENT\", gravitee_api_name=~\"$api\"}[$__rate_interval])))",
+          "legendFormat": "Backend (P95)",
+          "hide": false,
+          "range": true
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "clamp_min(sum (rate(gravitee_duration_milliseconds_sum{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__rate_interval])) / sum (rate(gravitee_duration_milliseconds_count{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__rate_interval])) - sum (rate(gravitee_duration_milliseconds_sum{span_kind=\"SPAN_KIND_CLIENT\", gravitee_api_name=~\"$api\"}[$__rate_interval])) / sum (rate(gravitee_duration_milliseconds_count{span_kind=\"SPAN_KIND_CLIENT\", gravitee_api_name=~\"$api\"}[$__rate_interval])), 0)",
+          "legendFormat": "Gateway overhead (avg)",
+          "hide": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "lineInterpolation": "smooth",
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "mappings": [],
+          "unit": "ms"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Total (P95)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "yellow"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Backend (P95)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Gateway overhead (avg)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "sortBy": "Mean",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 23,
+      "type": "piechart",
+      "title": "Where the time goes (avg)",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 27,
+        "w": 8,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sum (rate(gravitee_duration_milliseconds_sum{span_kind=\"SPAN_KIND_CLIENT\", gravitee_api_name=~\"$api\"}[$__range])) / sum (rate(gravitee_duration_milliseconds_count{span_kind=\"SPAN_KIND_CLIENT\", gravitee_api_name=~\"$api\"}[$__range]))",
+          "legendFormat": "Backend",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "clamp_min(sum (rate(gravitee_duration_milliseconds_sum{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__range])) / sum (rate(gravitee_duration_milliseconds_count{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__range])) - sum (rate(gravitee_duration_milliseconds_sum{span_kind=\"SPAN_KIND_CLIENT\", gravitee_api_name=~\"$api\"}[$__range])) / sum (rate(gravitee_duration_milliseconds_count{span_kind=\"SPAN_KIND_CLIENT\", gravitee_api_name=~\"$api\"}[$__range])), 0)",
+          "legendFormat": "Gateway overhead",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "ms"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Backend"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "displayName",
+                "value": "Gateway overhead"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "pieType": "donut",
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 24,
+      "type": "table",
+      "title": "Latency by API (ms)",
+      "description": "Click an API name to open its drill-down.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 36,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sum by (gravitee_api_name) (increase(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__range]))",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "histogram_quantile(0.5, sum by (le, gravitee_api_name) (rate(gravitee_duration_milliseconds_bucket{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__range])))",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le, gravitee_api_name) (rate(gravitee_duration_milliseconds_bucket{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__range])))",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "histogram_quantile(0.99, sum by (le, gravitee_api_name) (rate(gravitee_duration_milliseconds_bucket{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__range])))",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "histogram_quantile(0.95, sum by (le, gravitee_api_name) (rate(gravitee_duration_milliseconds_bucket{span_kind=\"SPAN_KIND_CLIENT\", gravitee_api_name=~\"$api\"}[$__range])))",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "F",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "clamp_min(sum by (gravitee_api_name) (rate(gravitee_duration_milliseconds_sum{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__range])) / sum by (gravitee_api_name) (rate(gravitee_duration_milliseconds_count{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__range])) - sum by (gravitee_api_name) (rate(gravitee_duration_milliseconds_sum{span_kind=\"SPAN_KIND_CLIENT\", gravitee_api_name=~\"$api\"}[$__range])) / sum by (gravitee_api_name) (rate(gravitee_duration_milliseconds_count{span_kind=\"SPAN_KIND_CLIENT\", gravitee_api_name=~\"$api\"}[$__range])), 0)",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "API"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open the drill-down of ${__field.labels.gravitee_api_name}${__data.fields.API}",
+                    "url": "/d/gravitee-otel-api?${__url_time_range}&${ds_prom:queryparam}&${ds_loki:queryparam}&${ds_tempo:queryparam}&var-api=${__field.labels.gravitee_api_name}${__data.fields.API}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Calls"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "P50 total"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "P95 total"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "P99 total"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "P95 backend"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Gateway overhead (avg)"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ms"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "P95 total"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 300
+                    },
+                    {
+                      "color": "red",
+                      "value": 1000
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Gateway overhead (avg)"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 20
+                    },
+                    {
+                      "color": "red",
+                      "value": 50
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "Calls",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "pattern": "gravitee_api_name|Value.*"
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "gravitee_api_name": "API",
+              "Value #A": "Calls",
+              "Value #B": "P50 total",
+              "Value #C": "P95 total",
+              "Value #D": "P99 total",
+              "Value #E": "P95 backend",
+              "Value #F": "Gateway overhead (avg)"
+            },
+            "excludeByName": {},
+            "indexByName": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "type": "row",
+      "title": "Leaderboards",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 44,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 26,
+      "type": "bargauge",
+      "title": "Top APIs by calls",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 45,
+        "w": 8,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sort_desc(sum by (gravitee_api_name) (increase(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__range])))",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [
+            {
+              "title": "Open the drill-down of ${__field.labels.gravitee_api_name}${__data.fields.API}",
+              "url": "/d/gravitee-otel-api?${__url_time_range}&${ds_prom:queryparam}&${ds_loki:queryparam}&${ds_tempo:queryparam}&var-api=${__field.labels.gravitee_api_name}${__data.fields.API}"
+            }
+          ],
+          "displayName": "${__field.labels.gravitee_api_name}",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "left",
+        "sizing": "manual",
+        "maxVizHeight": 26,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 27,
+      "type": "bargauge",
+      "title": "Top APIs by server errors (5xx)",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 45,
+        "w": 8,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sort_desc(sum by (gravitee_api_name) (increase(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\", http_status_code=~\"5..\"}[$__range])))",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "orange",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [
+            {
+              "title": "Open the drill-down of ${__field.labels.gravitee_api_name}${__data.fields.API}",
+              "url": "/d/gravitee-otel-api?${__url_time_range}&${ds_prom:queryparam}&${ds_loki:queryparam}&${ds_tempo:queryparam}&var-api=${__field.labels.gravitee_api_name}${__data.fields.API}"
+            }
+          ],
+          "displayName": "${__field.labels.gravitee_api_name}",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "left",
+        "sizing": "manual",
+        "maxVizHeight": 26,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 28,
+      "type": "bargauge",
+      "title": "Top APIs by P95 response time",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 45,
+        "w": 8,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sort_desc(histogram_quantile(0.95, sum by (le, gravitee_api_name) (rate(gravitee_duration_milliseconds_bucket{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__range]))))",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 300
+              },
+              {
+                "color": "red",
+                "value": 1000
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [
+            {
+              "title": "Open the drill-down of ${__field.labels.gravitee_api_name}${__data.fields.API}",
+              "url": "/d/gravitee-otel-api?${__url_time_range}&${ds_prom:queryparam}&${ds_loki:queryparam}&${ds_tempo:queryparam}&var-api=${__field.labels.gravitee_api_name}${__data.fields.API}"
+            }
+          ],
+          "displayName": "${__field.labels.gravitee_api_name}"
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "left",
+        "sizing": "manual",
+        "maxVizHeight": 26,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 29,
+      "type": "bargauge",
+      "title": "Top applications by calls",
+      "description": "'(keyless / rejected)': keyless plans, and calls rejected before an application was identified.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 54,
+        "w": 8,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sort_desc(sum by (application) (label_replace(label_replace(increase(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__range]), \"application\", \"$1\", \"gravitee_application_name\", \"(.+)\"), \"application\", \"(keyless / rejected)\", \"gravitee_application_name\", \"\")))",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "displayName": "${__field.labels.application}",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "left",
+        "sizing": "manual",
+        "maxVizHeight": 26,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 30,
+      "type": "bargauge",
+      "title": "Top plans by calls",
+      "description": "Plans are identified by their flow (spans carry no plan id), so a plan without a flow isn't counted. The name is the flow's name.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 54,
+        "w": 8,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sort_desc(sum by (flow) (increase(gravitee_calls_total{gravitee_api_name=~\"$api\", span_kind=\"SPAN_KIND_INTERNAL\", gravitee_execution_phase=\"request\", flow=~\"plan-.*\"}[$__range])))",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "displayName": "${__field.labels.flow}",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "left",
+        "sizing": "manual",
+        "maxVizHeight": 26,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 31,
+      "type": "bargauge",
+      "title": "Calls by HTTP method",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 54,
+        "w": 8,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sort_desc(sum by (http_method) (increase(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__range])))",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "displayName": "${__field.labels.http_method}",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "left",
+        "sizing": "manual",
+        "maxVizHeight": 26,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 32,
+      "type": "row",
+      "title": "Policy & security outcomes",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 63,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 33,
+      "type": "timeseries",
+      "title": "Gateway rejections by reason (failure key)",
+      "description": "Calls a policy refused or failed, by Gravitee failure key (RATE_LIMIT_TOO_MANY_REQUESTS, QUOTA_TOO_MANY_REQUESTS\u2026). Calls refused by plan security (no or invalid key) have no failure key: see the 401/403 counts.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 64,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sum by (gravitee_execution_failure_key) (rate(gravitee_calls_total{gravitee_api_name=~\"$api\", gravitee_execution_failure_key!=\"\", gravitee_policy=\"\"}[$__rate_interval]))",
+          "legendFormat": "{{gravitee_execution_failure_key}}",
+          "hide": false,
+          "range": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 2,
+            "fillOpacity": 80,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "lineInterpolation": "smooth",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "mappings": [],
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ],
+          "sortBy": "Mean",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 34,
+      "type": "piechart",
+      "title": "Rejections by reason",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 64,
+        "w": 6,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sort_desc(sum by (gravitee_execution_failure_key) (increase(gravitee_calls_total{gravitee_api_name=~\"$api\", gravitee_execution_failure_key!=\"\", gravitee_policy=\"\"}[$__range])))",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "displayName": "${__field.labels.gravitee_execution_failure_key}",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "pieType": "donut",
+        "displayLabels": [
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 35,
+      "type": "bargauge",
+      "title": "Rejections by policy",
+      "description": "Which policy stopped the call.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 64,
+        "w": 6,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sort_desc(sum by (gravitee_policy) (increase(gravitee_calls_total{gravitee_api_name=~\"$api\", gravitee_execution_failure_key!=\"\", gravitee_policy!=\"\"}[$__range])))",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "orange",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "displayName": "${__field.labels.gravitee_policy}",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "left",
+        "sizing": "manual",
+        "maxVizHeight": 26,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 36,
+      "type": "bargauge",
+      "title": "Rate-limited (429) by application",
+      "description": "Who is hitting their plan limits: candidates for a plan upgrade.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 73,
+        "w": 12,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sort_desc(sum by (application) (label_replace(label_replace(increase(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\", http_status_code=\"429\"}[$__range]), \"application\", \"$1\", \"gravitee_application_name\", \"(.+)\"), \"application\", \"(keyless / rejected)\", \"gravitee_application_name\", \"\")))",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "orange",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "displayName": "${__field.labels.application}",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "left",
+        "sizing": "manual",
+        "maxVizHeight": 26,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 37,
+      "type": "table",
+      "title": "Credential & access failures by API",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 73,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sort_desc(sum by (gravitee_api_name, http_status_code) (increase(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\", http_status_code=~\"40[13]\"}[$__range])) > 0)",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "API"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open the drill-down of ${__field.labels.gravitee_api_name}${__data.fields.API}",
+                    "url": "/d/gravitee-otel-api?${__url_time_range}&${ds_prom:queryparam}&${ds_loki:queryparam}&${ds_tempo:queryparam}&var-api=${__field.labels.gravitee_api_name}${__data.fields.API}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Calls"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "Calls",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "exclude": {
+              "names": [
+                "Time"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "gravitee_api_name": "API",
+              "http_status_code": "Status",
+              "Value": "Calls"
+            },
+            "excludeByName": {},
+            "indexByName": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "type": "table",
+      "title": "Backend failures by API",
+      "description": "Status codes returned by the backends (the Gateway's client spans).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${ds_prom}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 81,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sort_desc(sum by (gravitee_api_name, http_status_code) (increase(gravitee_calls_total{span_kind=\"SPAN_KIND_CLIENT\", gravitee_api_name=~\"$api\", http_status_code=~\"5..\"}[$__range])) > 0)",
+          "legendFormat": "",
+          "hide": false,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "API"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open the drill-down of ${__field.labels.gravitee_api_name}${__data.fields.API}",
+                    "url": "/d/gravitee-otel-api?${__url_time_range}&${ds_prom:queryparam}&${ds_loki:queryparam}&${ds_tempo:queryparam}&var-api=${__field.labels.gravitee_api_name}${__data.fields.API}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Calls"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "Calls",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "exclude": {
+              "names": [
+                "Time"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "gravitee_api_name": "API",
+              "http_status_code": "Status",
+              "Value": "Calls"
+            },
+            "excludeByName": {},
+            "indexByName": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "type": "row",
+      "title": "Investigate (traces)",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 89,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 40,
+      "type": "table",
+      "title": "Latest failed calls (5xx)",
+      "description": "Click a trace to open its spans (phases, plan flow, each policy, the backend call) and its logged payloads.",
+      "datasource": {
+        "type": "tempo",
+        "uid": "${ds_tempo}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 90,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "${ds_tempo}"
+          },
+          "queryType": "traceql",
+          "query": "{resource.gravitee.api.name=~\"${api:regex}\" && kind=server && span.http.status_code >= 500} with (most_recent=true)",
+          "limit": 50,
+          "spss": 1,
+          "tableType": "traces"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "Start time",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "traceName": "Call",
+              "startTime": "Start time",
+              "traceDuration": "Duration",
+              "traceID": "Trace"
+            },
+            "excludeByName": {
+              "traceService": true
+            },
+            "indexByName": {}
+          }
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "type": "table",
+      "title": "Latest slow calls (> 1 s)",
+      "description": "Click a trace to open its spans (phases, plan flow, each policy, the backend call) and its logged payloads.",
+      "datasource": {
+        "type": "tempo",
+        "uid": "${ds_tempo}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 90,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "${ds_tempo}"
+          },
+          "queryType": "traceql",
+          "query": "{resource.gravitee.api.name=~\"${api:regex}\" && kind=server && duration > 1s} with (most_recent=true)",
+          "limit": 50,
+          "spss": 1,
+          "tableType": "traces"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        },
+        "sortBy": [
+          {
+            "displayName": "Start time",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "traceName": "Call",
+              "startTime": "Start time",
+              "traceDuration": "Duration",
+              "traceID": "Trace"
+            },
+            "excludeByName": {
+              "traceService": true
+            },
+            "indexByName": {}
+          }
+        }
+      ]
+    }
+  ]
+}

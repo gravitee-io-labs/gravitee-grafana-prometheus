@@ -1,0 +1,73 @@
+# OpenTelemetry Collector for Gravitee APIM, without Elasticsearch.
+# - traces: per-API metrics derived from the spans (spanmetrics -> Prometheus), and the traces themselves (Tempo)
+# - logs:   payloads of logged calls, correlated with their trace (Loki)
+receivers:
+  otlp:
+    protocols:
+      grpc: { endpoint: 0.0.0.0:4317 }
+      http: { endpoint: 0.0.0.0:4318 }
+
+processors:
+  batch: {}
+  # Drop per-process resource attributes: as Prometheus labels they would create new series at every restart
+  resource/labels:
+    attributes:
+      - { key: hostname, action: delete }
+      - { key: ip, action: delete }
+      - { key: service.instance.id, action: delete }
+      - { key: telemetry.sdk.language, action: delete }
+      - { key: telemetry.sdk.name, action: delete }
+      - { key: telemetry.sdk.version, action: delete }
+      - { key: gravitee.module, action: delete }
+      - { key: gravitee.org.id, action: delete }
+      - { key: gravitee.api.type, action: delete }
+
+connectors:
+  spanmetrics:
+    namespace: gravitee
+    histogram:
+      unit: ms
+      explicit:
+        buckets: [5ms, 10ms, 25ms, 50ms, 100ms, 250ms, 500ms, 1s, 2500ms, 5s, 10s]
+    # span.name contains the request path on server spans: too many values for a label
+    exclude_dimensions: [span.name]
+    # Every label multiplies the number of series: keep this list short
+    dimensions:
+      - name: http.status_code                # server span (client side) and client span (backend side)
+      - name: http.method
+      - name: gravitee.application.name       # server span; empty for keyless plans and rejected calls
+      - name: flow                            # flow spans, e.g. "plan-gold plan"
+      - name: gravitee.execution.phase        # request or response, on flow and policy spans
+      - name: gravitee.policy                 # policy spans
+      - name: gravitee.execution-failure.key  # the span that interrupted the call, e.g. RATE_LIMIT_TOO_MANY_REQUESTS
+    metrics_flush_interval: 5s
+
+exporters:
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    resource_to_telemetry_conversion: { enabled: true }
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls: { insecure: true }
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+
+service:
+  telemetry:
+    metrics:
+      readers:
+        - pull:
+            exporter:
+              prometheus: { host: 0.0.0.0, port: 8888 }
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [resource/labels, batch]
+      exporters: [spanmetrics, otlp/tempo]
+    metrics:
+      receivers: [spanmetrics]
+      exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [resource/labels, batch]
+      exporters: [otlphttp/loki]

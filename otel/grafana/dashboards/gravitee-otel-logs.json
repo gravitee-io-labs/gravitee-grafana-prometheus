@@ -1,0 +1,1514 @@
+{
+  "uid": "gravitee-otel-logs",
+  "title": "Gravitee OTel \u00b7 Call Logs",
+  "description": "Payloads of logged API calls, from the Gateway's OpenTelemetry logs in Loki: search them, list failed calls, and inspect one call hop by hop.",
+  "tags": [
+    "gravitee-otel"
+  ],
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": [
+      "10s",
+      "30s",
+      "1m",
+      "5m",
+      "15m"
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "links": [
+    {
+      "title": "Gravitee dashboards",
+      "type": "dashboards",
+      "tags": [
+        "gravitee-otel"
+      ],
+      "asDropdown": true,
+      "includeVars": true,
+      "keepTime": true,
+      "icon": "external link"
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "ds_prom",
+        "label": "Metrics (Prometheus)",
+        "type": "datasource",
+        "query": "prometheus",
+        "regex": "",
+        "current": {
+          "text": "prometheus",
+          "value": "prometheus"
+        },
+        "hide": 0,
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "ds_loki",
+        "label": "Call logs (Loki)",
+        "type": "datasource",
+        "query": "loki",
+        "regex": "",
+        "current": {
+          "text": "gravitee-loki",
+          "value": "gravitee-loki"
+        },
+        "hide": 0,
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "ds_tempo",
+        "label": "Traces (Tempo)",
+        "type": "datasource",
+        "query": "tempo",
+        "regex": "",
+        "current": {
+          "text": "gravitee-tempo",
+          "value": "gravitee-tempo"
+        },
+        "hide": 0,
+        "refresh": 1,
+        "includeAll": false,
+        "multi": false
+      },
+      {
+        "name": "api",
+        "label": "API",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${ds_prom}"
+        },
+        "query": {
+          "query": "label_values(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\"}, gravitee_api_name)",
+          "refId": "api"
+        },
+        "definition": "label_values(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\"}, gravitee_api_name)",
+        "refresh": 2,
+        "sort": 1,
+        "includeAll": true,
+        "multi": true,
+        "allValue": ".*",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
+      },
+      {
+        "name": "request_id",
+        "label": "Request id (call detail)",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "hide": 0
+      },
+      {
+        "name": "search",
+        "label": "Search payloads (regex)",
+        "type": "textbox",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        },
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 2,
+      "type": "text",
+      "title": "",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 4
+      },
+      "options": {
+        "mode": "markdown",
+        "content": "\n**Call logs** here are the Gateway's **OpenTelemetry logs**: the request and response **payloads** of each logged call,\non the client side and the backend side, linked to the call's trace. They're written for APIs with **OTel logs enabled**\n(API \u2192 *Reporter settings*), for the calls that match the API's logging condition: the demo logs **1 call in 5**.\nHeaders are not exported as OTel logs: open the trace for the call's path through the Gateway.\n**Search** filters payloads with a regular expression, e.g. `EUR` or `wayne`. \u26a0\ufe0f Payloads can contain personal data:\nrestrict access to the Loki data source.\n"
+      }
+    },
+    {
+      "id": 3,
+      "type": "row",
+      "title": "Logged calls",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Logged calls",
+      "description": "",
+      "datasource": {
+        "type": "loki",
+        "uid": "${ds_loki}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "${ds_loki}"
+          },
+          "expr": "sum(count_over_time({service_name=\"gio-apim-gateway\"} | gravitee_api_name=~\"$api\" | gravitee_log_type=\"entrypoint-response\" [$__range]))",
+          "legendFormat": "",
+          "queryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#1f60c4",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Share of calls logged",
+      "description": "Logged calls (Loki) / all calls (span metrics). Logging conditions and APIs without OTel logs keep this below 100 %.",
+      "datasource": {
+        "type": "datasource",
+        "uid": "-- Mixed --"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 5,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "${ds_loki}"
+          },
+          "expr": "sum(count_over_time({service_name=\"gio-apim-gateway\"} | gravitee_api_name=~\"$api\" | gravitee_log_type=\"entrypoint-response\" [$__range]))",
+          "legendFormat": "",
+          "queryType": "instant",
+          "hide": true
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${ds_prom}"
+          },
+          "expr": "sum(increase(gravitee_calls_total{span_kind=\"SPAN_KIND_SERVER\", gravitee_api_name=~\"$api\"}[$__range]))",
+          "legendFormat": "",
+          "hide": true,
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "__expr__",
+            "uid": "__expr__"
+          },
+          "type": "reduce",
+          "expression": "A",
+          "reducer": "sum",
+          "settings": {
+            "mode": "replaceNN",
+            "replaceWithValue": 0
+          },
+          "hide": true
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "__expr__",
+            "uid": "__expr__"
+          },
+          "type": "reduce",
+          "expression": "B",
+          "reducer": "sum",
+          "settings": {
+            "mode": "replaceNN",
+            "replaceWithValue": 0
+          },
+          "hide": true
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "__expr__",
+            "uid": "__expr__"
+          },
+          "type": "math",
+          "expression": "$C / $D"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "percentunit",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Logged failures (4xx/5xx)",
+      "description": "",
+      "datasource": {
+        "type": "loki",
+        "uid": "${ds_loki}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 5,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "${ds_loki}"
+          },
+          "expr": "sum(count_over_time({service_name=\"gio-apim-gateway\"} | gravitee_api_name=~\"$api\" | gravitee_log_type=\"entrypoint-response\" | http_response_status_code >= 400 [$__range]))",
+          "legendFormat": "",
+          "queryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Answered by the Gateway",
+      "description": "Logged calls the Gateway answered without calling the backend (backend status 0): rejected by plan security or a policy such as rate limiting.",
+      "datasource": {
+        "type": "loki",
+        "uid": "${ds_loki}"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 5,
+        "w": 6,
+        "h": 4
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "${ds_loki}"
+          },
+          "expr": "sum(count_over_time({service_name=\"gio-apim-gateway\"} | gravitee_api_name=~\"$api\" | gravitee_log_type=\"endpoint-response\" | http_response_status_code = 0 [$__range]))",
+          "legendFormat": "",
+          "queryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "textMode": "value",
+        "wideLayout": true
+      },
+      "transformations": []
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Logged calls by client status",
+      "description": "",
+      "datasource": {
+        "type": "loki",
+        "uid": "${ds_loki}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 9,
+        "w": 12,
+        "h": 8
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "${ds_loki}"
+          },
+          "expr": "sum(count_over_time({service_name=\"gio-apim-gateway\"} | gravitee_api_name=~\"$api\" | gravitee_log_type=\"entrypoint-response\" | http_response_status_code >= 200 | http_response_status_code < 300 [$__auto]))",
+          "legendFormat": "2xx",
+          "queryType": "range"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "loki",
+            "uid": "${ds_loki}"
+          },
+          "expr": "sum(count_over_time({service_name=\"gio-apim-gateway\"} | gravitee_api_name=~\"$api\" | gravitee_log_type=\"entrypoint-response\" | http_response_status_code >= 300 | http_response_status_code < 400 [$__auto]))",
+          "legendFormat": "3xx",
+          "queryType": "range"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "loki",
+            "uid": "${ds_loki}"
+          },
+          "expr": "sum(count_over_time({service_name=\"gio-apim-gateway\"} | gravitee_api_name=~\"$api\" | gravitee_log_type=\"entrypoint-response\" | http_response_status_code >= 400 | http_response_status_code < 500 [$__auto]))",
+          "legendFormat": "4xx",
+          "queryType": "range"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "loki",
+            "uid": "${ds_loki}"
+          },
+          "expr": "sum(count_over_time({service_name=\"gio-apim-gateway\"} | gravitee_api_name=~\"$api\" | gravitee_log_type=\"entrypoint-response\" | http_response_status_code >= 500 | http_response_status_code < 600 [$__auto]))",
+          "legendFormat": "5xx",
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 2,
+            "fillOpacity": 80,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "lineInterpolation": "smooth",
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "mappings": [],
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "2xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "3xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "4xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "5xx"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ],
+          "sortBy": "Sum",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 9,
+      "type": "bargauge",
+      "title": "Logged calls by API",
+      "description": "",
+      "datasource": {
+        "type": "loki",
+        "uid": "${ds_loki}"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 9,
+        "w": 6,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "${ds_loki}"
+          },
+          "expr": "sort_desc(sum by (gravitee_api_name) (count_over_time({service_name=\"gio-apim-gateway\"} | gravitee_api_name=~\"$api\" | gravitee_log_type=\"entrypoint-response\" [$__range])))",
+          "legendFormat": "",
+          "queryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "displayName": "${__field.labels.gravitee_api_name}",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "left",
+        "sizing": "manual",
+        "maxVizHeight": 26,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 10,
+      "type": "bargauge",
+      "title": "Logged failures by status",
+      "description": "",
+      "datasource": {
+        "type": "loki",
+        "uid": "${ds_loki}"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 9,
+        "w": 6,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "${ds_loki}"
+          },
+          "expr": "sort_desc(sum by (http_response_status_code) (count_over_time({service_name=\"gio-apim-gateway\"} | gravitee_api_name=~\"$api\" | gravitee_log_type=\"entrypoint-response\" | http_response_status_code >= 400 [$__range])))",
+          "legendFormat": "",
+          "queryType": "instant"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {},
+          "mappings": [],
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "orange",
+                "value": null
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "displayName": "${__field.labels.http_response_status_code}",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "left",
+        "sizing": "manual",
+        "maxVizHeight": 26,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": true
+        }
+      },
+      "transformations": []
+    },
+    {
+      "id": 11,
+      "type": "row",
+      "title": "Call log explorer",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 18,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 12,
+      "type": "table",
+      "title": "Logged failed calls",
+      "description": "Click a request id to show its payloads below, or a trace to open its spans.",
+      "datasource": {
+        "type": "loki",
+        "uid": "${ds_loki}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 19,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "${ds_loki}"
+          },
+          "expr": "{service_name=\"gio-apim-gateway\"} | gravitee_api_name=~\"$api\" | gravitee_log_type=\"entrypoint-response\" | http_response_status_code >= 400",
+          "legendFormat": "",
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Request id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Show this call's payloads",
+                    "url": "/d/gravitee-otel-logs?${__url_time_range}&${ds_prom:queryparam}&${ds_loki:queryparam}&${ds_tempo:queryparam}&var-request_id=${__value.raw}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Trace"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open the trace",
+                    "url": "/explore?schemaVersion=1&orgId=1&panes={\"t\":{\"datasource\":\"${ds_tempo}\",\"queries\":[{\"refId\":\"A\",\"datasource\":{\"type\":\"tempo\",\"uid\":\"${ds_tempo}\"},\"queryType\":\"traceql\",\"query\":\"${__value.raw}\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 400
+                    },
+                    {
+                      "color": "red",
+                      "value": 500
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Response body"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 420
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "labels",
+            "replace": false
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "targetField": "http_response_status_code",
+                "destinationType": "number"
+              }
+            ]
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "Time",
+                "gravitee_api_name",
+                "gravitee_application_name",
+                "http_response_status_code",
+                "gravitee_request_id",
+                "trace_id",
+                "Line"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Time": "Time",
+              "gravitee_api_name": "API",
+              "gravitee_application_name": "Application",
+              "http_response_status_code": "Status",
+              "gravitee_request_id": "Request id",
+              "trace_id": "Trace",
+              "Line": "Response body"
+            },
+            "excludeByName": {},
+            "indexByName": {
+              "Time": 0,
+              "gravitee_api_name": 1,
+              "gravitee_application_name": 2,
+              "http_response_status_code": 3,
+              "gravitee_request_id": 4,
+              "trace_id": 5,
+              "Line": 6
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "type": "table",
+      "title": "Payload search",
+      "description": "Every logged payload (any hop) that matches Search. Click a request id to show the whole call.",
+      "datasource": {
+        "type": "loki",
+        "uid": "${ds_loki}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 24,
+        "h": 9
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "${ds_loki}"
+          },
+          "expr": "{service_name=\"gio-apim-gateway\"} | gravitee_api_name=~\"$api\" |~ \"(?i)${search:raw}\"",
+          "legendFormat": "",
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Request id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Show this call's payloads",
+                    "url": "/d/gravitee-otel-logs?${__url_time_range}&${ds_prom:queryparam}&${ds_loki:queryparam}&${ds_tempo:queryparam}&var-request_id=${__value.raw}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Trace"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open the trace",
+                    "url": "/explore?schemaVersion=1&orgId=1&panes={\"t\":{\"datasource\":\"${ds_tempo}\",\"queries\":[{\"refId\":\"A\",\"datasource\":{\"type\":\"tempo\",\"uid\":\"${ds_tempo}\"},\"queryType\":\"traceql\",\"query\":\"${__value.raw}\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Payload"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 520
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "labels",
+            "replace": false
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "targetField": "http_response_status_code",
+                "destinationType": "number"
+              }
+            ]
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "Time",
+                "gravitee_log_type",
+                "gravitee_api_name",
+                "gravitee_application_name",
+                "gravitee_request_id",
+                "trace_id",
+                "Line"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "Time": "Time",
+              "gravitee_log_type": "Hop",
+              "gravitee_api_name": "API",
+              "gravitee_application_name": "Application",
+              "gravitee_request_id": "Request id",
+              "trace_id": "Trace",
+              "Line": "Payload"
+            },
+            "excludeByName": {},
+            "indexByName": {
+              "Time": 0,
+              "gravitee_log_type": 1,
+              "gravitee_api_name": 2,
+              "gravitee_application_name": 3,
+              "gravitee_request_id": 4,
+              "trace_id": 5,
+              "Line": 6
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "type": "row",
+      "title": "Call detail",
+      "collapsed": false,
+      "gridPos": {
+        "x": 0,
+        "y": 37,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 15,
+      "type": "table",
+      "title": "Call summary",
+      "description": "The hops of the call selected by Request id: method and URL on requests, status on responses. Click the trace for the time spent in each policy.",
+      "datasource": {
+        "type": "loki",
+        "uid": "${ds_loki}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 38,
+        "w": 10,
+        "h": 14
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "${ds_loki}"
+          },
+          "expr": "{service_name=\"gio-apim-gateway\"} | gravitee_request_id=\"$request_id\"",
+          "legendFormat": "",
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Trace"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Open the trace",
+                    "url": "/explore?schemaVersion=1&orgId=1&panes={\"t\":{\"datasource\":\"${ds_tempo}\",\"queries\":[{\"refId\":\"A\",\"datasource\":{\"type\":\"tempo\",\"uid\":\"${ds_tempo}\"},\"queryType\":\"traceql\",\"query\":\"${__value.raw}\"}],\"range\":{\"from\":\"${__from}\",\"to\":\"${__to}\"}}}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 400
+                    },
+                    {
+                      "color": "red",
+                      "value": 500
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "not called",
+                        "color": "transparent",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Hop"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 230
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "entrypoint-request": {
+                        "text": "1. Client \u2192 Gateway (request)"
+                      },
+                      "endpoint-request": {
+                        "text": "2. Gateway \u2192 backend (request)"
+                      },
+                      "endpoint-response": {
+                        "text": "3. Backend \u2192 Gateway (response)"
+                      },
+                      "entrypoint-response": {
+                        "text": "4. Gateway \u2192 client (response)"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "labels",
+            "replace": false
+          }
+        },
+        {
+          "id": "convertFieldType",
+          "options": {
+            "conversions": [
+              {
+                "targetField": "http_response_status_code",
+                "destinationType": "number"
+              }
+            ]
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Time",
+                "desc": false
+              }
+            ]
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "gravitee_log_type",
+                "http_request_method",
+                "http_url",
+                "http_response_status_code",
+                "trace_id"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "gravitee_log_type": "Hop",
+              "http_request_method": "Method",
+              "http_url": "URL",
+              "http_response_status_code": "Status",
+              "trace_id": "Trace"
+            },
+            "excludeByName": {},
+            "indexByName": {
+              "gravitee_log_type": 0,
+              "http_request_method": 1,
+              "http_url": 2,
+              "http_response_status_code": 3,
+              "trace_id": 4
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "type": "table",
+      "title": "Payloads",
+      "description": "Bodies at each hop. Comparing 1\u21942 or 3\u21944 shows what policies changed (transformation, masking).",
+      "datasource": {
+        "type": "loki",
+        "uid": "${ds_loki}"
+      },
+      "gridPos": {
+        "x": 10,
+        "y": 38,
+        "w": 14,
+        "h": 14
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "${ds_loki}"
+          },
+          "expr": "{service_name=\"gio-apim-gateway\"} | gravitee_request_id=\"$request_id\"",
+          "legendFormat": "",
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": true,
+            "filterable": true
+          },
+          "mappings": []
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Hop"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 230
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "entrypoint-request": {
+                        "text": "1. Client \u2192 Gateway (request)"
+                      },
+                      "endpoint-request": {
+                        "text": "2. Gateway \u2192 backend (request)"
+                      },
+                      "endpoint-response": {
+                        "text": "3. Backend \u2192 Gateway (response)"
+                      },
+                      "entrypoint-response": {
+                        "text": "4. Gateway \u2192 client (response)"
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Body"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto",
+                  "wrapText": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": false
+        }
+      },
+      "transformations": [
+        {
+          "id": "extractFields",
+          "options": {
+            "source": "labels",
+            "replace": false
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Time",
+                "desc": false
+              }
+            ]
+          }
+        },
+        {
+          "id": "filterFieldsByName",
+          "options": {
+            "include": {
+              "names": [
+                "gravitee_log_type",
+                "Line"
+              ]
+            }
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "gravitee_log_type": "Hop",
+              "Line": "Body"
+            },
+            "excludeByName": {},
+            "indexByName": {
+              "gravitee_log_type": 0,
+              "Line": 1
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

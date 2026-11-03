@@ -1,0 +1,87 @@
+# Alerts for Gravitee APIM monitored through OpenTelemetry. Route them with Alertmanager (or Grafana alerting).
+groups:
+  - name: gravitee-otel-apis
+    rules:
+      - alert: GraviteeApiErrorBudgetFastBurn
+        expr: gravitee_api:error_burn_rate:5m > 14.4 and gravitee_api:error_burn_rate:1h > 14.4
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.gravitee_api_name }}: error budget burning fast ({{ $value | printf \"%.1f\" }}x)"
+          description: "At this pace 2% of the API's 30-day error budget is consumed every hour (5xx share above 7.2%)."
+
+      - alert: GraviteeApiErrorBudgetSlowBurn
+        expr: gravitee_api:error_burn_rate:30m > 6 and gravitee_api:error_burn_rate:6h > 6
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.gravitee_api_name }}: error budget burning ({{ $value | printf \"%.1f\" }}x)"
+          description: "Sustained 5xx rate above 3%: 5% of the API's 30-day budget consumed every 6 hours."
+
+      - alert: GraviteeApiHighLatency
+        expr: |
+          histogram_quantile(0.95, sum by (le, gravitee_api_name)
+            (rate(gravitee_duration_milliseconds_bucket{span_kind="SPAN_KIND_SERVER"}[5m]))) > 500
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.gravitee_api_name }}: P95 response time above 500 ms"
+
+  - name: gravitee-otel-gateway
+    rules:
+      - alert: GraviteeGatewayDown
+        expr: up{job="gravitee"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "Gravitee gateway {{ $labels.instance }} is not reachable"
+          description: "Prometheus cannot scrape the gateway internal API for more than 1 minute."
+
+      - alert: GraviteeHeapPressure
+        expr: |
+          sum by (instance) (jvm_memory_used_bytes{area="heap"})
+            / sum by (instance) (jvm_memory_max_bytes{area="heap"} > 0) > 0.9
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Gateway {{ $labels.instance }} heap above 90% for 10 minutes"
+
+      - alert: GraviteeGcPressure
+        expr: sum by (instance) (rate(jvm_gc_pause_seconds_sum[5m])) > 0.1
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Gateway {{ $labels.instance }} spends more than 10% of its time in GC"
+
+      - alert: GraviteeHighCpu
+        expr: process_cpu_usage > 0.85
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Gateway {{ $labels.instance }} CPU above 85%"
+
+  - name: gravitee-otel-pipeline
+    rules:
+      - alert: GraviteeTelemetryCollectorDown
+        expr: up{job="otel-collector"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "The OpenTelemetry Collector is not reachable: API metrics, traces and call logs stop"
+
+      - alert: GraviteeNoApiTelemetry
+        expr: up{job="gravitee"} == 1 unless on() (sum(rate(otelcol_receiver_accepted_spans[5m])) > 0)
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "The Gateway is up but the collector receives no spans"
+          description: "Check services.opentelemetry on the Gateway, and that tracing is enabled on the APIs."
+
+      - alert: GraviteeTelemetryExportFailures
+        expr: |
+          sum by (exporter) (rate(otelcol_exporter_send_failed_spans[5m])
+            or rate(otelcol_exporter_send_failed_log_records[5m])) > 0
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "The collector fails to export to {{ $labels.exporter }}"

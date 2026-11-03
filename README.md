@@ -49,6 +49,18 @@ The dashboards are **generated**: edit `dashboards-src/build.py`, then run `pyth
 
 **Download the ready-made pack** from the [latest release](https://github.com/gravitee-io-labs/gravitee-grafana-prometheus/releases/latest) (`gravitee-grafana-dashboards.zip`, open `GUIDE.html` first). **To build it yourself**, run `dashboards-src/package.sh`. It produces `dist/gravitee-grafana-dashboards.zip`: the dashboards, data source and dashboard provisioning files, Prometheus rules, and an install guide (`dashboards-src/INSTALL.md`). Every dashboard picks its data sources through dropdowns, so it imports into any Grafana.
 
+## Without Elasticsearch: the OpenTelemetry edition
+
+[`otel/`](otel/) is a separate pack and demo stack for teams that don't run Elasticsearch. The Gateway sends OpenTelemetry traces and logs to an OpenTelemetry Collector, which derives per-API metrics from the spans (Prometheus) and stores the traces (Tempo) and logged payloads (Loki). Six dashboards mirror the ones above, with per-API SLO rules and alerts, a trace behind every call, and the health of the telemetry pipeline.
+
+```bash
+cd otel && docker compose up -d                                          # own ports: Grafana :3001, Gateway :38082
+OTEL=1 MGMT_URL=http://localhost:38083/management python3 ../scripts/seed.py
+docker compose --profile demo up -d                                      # traffic
+```
+
+Open Grafana at http://localhost:3001 (admin / admin). It runs next to the Elasticsearch stack. Build the pack with `otel/package.sh` (`dist/gravitee-grafana-dashboards-otel.zip`); [otel/INSTALL.md](otel/INSTALL.md) covers the setup on an existing installation and what this edition can't show (geography, user agents, per-path tables, headers, plan ids).
+
 ## Screenshots & video
 
 `media/` holds one full-height PNG per dashboard, a world-map hero image, and a 1080p walkthrough video (`gravitee-dashboards-walkthrough.mp4`, ~1 min, captioned). To regenerate them from the live stack (needs Google Chrome and ffmpeg):
@@ -105,7 +117,8 @@ grafana/provisioning/                     data sources (Prometheus, Gravitee Ana
 grafana/dashboards/                       generated dashboards (do not edit by hand)
 dashboards-src/build.py                   dashboard generator
 dashboards-src/package.sh, INSTALL.md     distributable pack
-scripts/seed.py, scripts/traffic.py       demo estate + traffic
+scripts/seed.py, scripts/traffic.py       demo estate + traffic (OTEL=1: traces and OTel logs on every API)
+otel/                                     OpenTelemetry edition: stack, collector, generator (build.py), pack (package.sh)
 ```
 
 ## Fixes compared with the tutorial

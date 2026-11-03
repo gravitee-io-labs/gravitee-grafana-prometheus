@@ -1,0 +1,25 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 30s
+
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
+scrape_configs:
+  # Gateway node metrics: JVM, CPU, HTTP totals
+  - job_name: 'gravitee'
+    # Must match GATEWAY_INTERNAL_USER / GATEWAY_INTERNAL_PASSWORD in .env
+    basic_auth:
+      username: admin
+      password: adminadmin
+    metrics_path: '/_node/metrics/prometheus'
+    static_configs:
+      - targets: ['gateway:18082']
+  # Per-API metrics the collector derives from the Gateway's spans (gravitee_calls_total, gravitee_duration_*)
+  - job_name: 'gravitee-spanmetrics'
+    static_configs:
+      - targets: ['otel-collector:8889']
+  # The collector's own health: spans and logs received, refused, exported
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets: ['otel-collector:8888']

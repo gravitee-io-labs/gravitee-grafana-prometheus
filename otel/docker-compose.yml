@@ -1,0 +1,148 @@
+# Gravitee APIM monitored without Elasticsearch: the Gateway sends OpenTelemetry traces and logs to a collector,
+# which derives Prometheus metrics from the spans and stores traces in Tempo and logged payloads in Loki.
+services:
+
+  mongodb:
+    image: mongo:${MONGO_VERSION}
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  management-api:
+    image: graviteeio/apim-management-api:${APIM_VERSION}
+    restart: unless-stopped
+    # Optional Enterprise license (local only, git-ignored, never packaged)
+    env_file:
+      - path: ../.secrets/license.env
+        required: false
+    depends_on:
+      mongodb: { condition: service_healthy }
+    environment:
+      - gravitee_ds_mongodb_host=mongodb
+      # No analytics store: the Console's analytics and log pages stay empty, Grafana replaces them
+      - gravitee_repositories_analytics_type=none
+    ports:
+      - "127.0.0.1:${MGMT_API_PORT}:8083"
+
+  gateway:
+    image: graviteeio/apim-gateway:${APIM_VERSION}
+    restart: unless-stopped
+    env_file:
+      - path: ../.secrets/license.env
+        required: false
+    depends_on:
+      mongodb: { condition: service_healthy }
+      otel-collector: { condition: service_started }
+    environment:
+      - gravitee_ds_mongodb_host=mongodb
+      - gravitee_reporters_elasticsearch_enabled=false
+      # Traces (and the metrics derived from them) and OTel logs, sent to the collector
+      - gravitee_services_opentelemetry_enabled=true
+      - gravitee_services_opentelemetry_exporter_endpoint=http://otel-collector:4317
+      - gravitee_services_opentelemetry_exporter_protocol=grpc
+      - gravitee_services_opentelemetry_exporter_logsEndpoint=http://otel-collector:4318/v1/logs
+      - gravitee_reporters_otel_enabled=true
+      # Prometheus metrics service: JVM, CPU and HTTP totals per node
+      - gravitee_services_metrics_enabled=true
+      - gravitee_services_metrics_prometheus_enabled=true
+      - gravitee_services_core_http_host=0.0.0.0
+      - gravitee_services_core_http_port=18082
+      - gravitee_services_core_http_authentication_type=basic
+      - gravitee_services_core_http_authentication_users_${GATEWAY_INTERNAL_USER}=${GATEWAY_INTERNAL_PASSWORD}
+    ports:
+      - "127.0.0.1:${GATEWAY_PORT}:8082"
+
+  management-ui:
+    image: graviteeio/apim-management-ui:${APIM_VERSION}
+    restart: unless-stopped
+    depends_on:
+      - management-api
+    environment:
+      - MGMT_API_URL=http://localhost:${MGMT_API_PORT}/management/organizations/DEFAULT/environments/DEFAULT/
+    ports:
+      - "127.0.0.1:${MGMT_UI_PORT}:8080"
+
+  backend:
+    image: mccutchen/go-httpbin:${HTTPBIN_VERSION}
+    restart: unless-stopped
+
+  # Continuous demo traffic (run `OTEL=1 python3 scripts/seed.py` first). docker compose --profile demo up -d
+  traffic:
+    image: python:${PYTHON_VERSION}
+    profiles: ["demo"]
+    restart: unless-stopped
+    depends_on:
+      - gateway
+    environment:
+      - GATEWAY_URL=http://gateway:8082
+      - TRAFFIC_RPS=${TRAFFIC_RPS}
+      - KEYS_FILE=/scripts/.keys-otel.json
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - ../scripts:/scripts:ro
+    command: ["python", "-I", "/scripts/traffic.py"]
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:${OTELCOL_VERSION}
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/collector.yaml"]
+    depends_on: [tempo, loki]
+    volumes:
+      - ./collector.yaml:/etc/otelcol/collector.yaml:ro
+
+  tempo:
+    image: grafana/tempo:${TEMPO_VERSION}
+    restart: unless-stopped
+    user: "0"
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml:ro
+      - tempo_data:/var/tempo
+
+  loki:
+    image: grafana/loki:${LOKI_VERSION}
+    restart: unless-stopped
+    user: "0"
+    command: ["-config.file=/etc/loki/loki.yaml"]
+    volumes:
+      - ./loki.yaml:/etc/loki/loki.yaml:ro
+      - loki_data:/loki
+
+  prometheus:
+    image: prom/prometheus:${PROMETHEUS_VERSION}
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/rules:/etc/prometheus/rules:ro
+      - prom_data:/prometheus
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT}:9090"
+
+  grafana:
+    image: grafana/grafana:${GRAFANA_VERSION}
+    restart: unless-stopped
+    depends_on: [prometheus, loki, tempo]
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/dashboards/gravitee-otel-overview.json
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT}:3000"
+
+volumes:
+  mongo_data:
+  prom_data:
+  grafana_data:
+  tempo_data:
+  loki_data:

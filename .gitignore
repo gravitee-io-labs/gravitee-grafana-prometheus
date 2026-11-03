@@ -1,4 +1,4 @@
-scripts/.keys.json
+scripts/.keys*.json
 dist/
 .secrets/
 scripts/node_modules

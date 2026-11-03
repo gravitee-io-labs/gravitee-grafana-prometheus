@@ -1,0 +1,16 @@
+# Single-process Tempo for the proof of concept; receives OTLP traces
+server:
+  http_listen_port: 3200
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc: { endpoint: 0.0.0.0:4317 }
+storage:
+  trace:
+    backend: local
+    local: { path: /var/tempo/traces }
+    wal: { path: /var/tempo/wal }
+compactor:
+  compaction: { block_retention: 72h }
+usage_report: { reporting_enabled: false }

@@ -4,8 +4,9 @@
 APIs, plans (API key / keyless, with rate limits), applications, subscriptions, and
 policy-assign-metrics stamps (custom.app / custom.plan / custom.tenant / custom.channel),
 and call logging (headers + payloads) on a 1-in-5 sample of calls.
+With OTEL=1 (the Elasticsearch-free stack in otel/), every API also sends OpenTelemetry traces and logs.
 Idempotent: existing APIs / applications (matched by name) are reused.
-Writes the API keys to scripts/.keys.json for the traffic generator.
+Writes the API keys to scripts/.keys.json (or KEYS_FILE) for the traffic generator.
 """
 import base64, json, os, sys, urllib.error, urllib.request
 
@@ -17,6 +18,9 @@ AUTH = "Basic " + base64.b64encode(os.environ.get("MGMT_AUTH", "admin:admin").en
 BACKEND = os.environ.get("BACKEND_URL", "http://backend:8080")
 # policy-assign-metrics is an Enterprise feature: only stamp custom.* dimensions when licensed
 ENTERPRISE = os.environ.get("ENTERPRISE", "0") == "1"
+# OpenTelemetry route: traces on every call (the source of the per-API metrics) and OTel logs of logged calls
+OTEL = os.environ.get("OTEL", "0") == "1"
+KEYS_FILE = os.environ.get("KEYS_FILE", os.path.join(HERE, ".keys-otel.json" if OTEL else ".keys.json"))
 
 
 def call(method, url, body=None):
@@ -59,6 +63,9 @@ CHANNEL_EL = "{#request.headers['X-Channel'] != null ? #request.headers['X-Chann
 LOGGING = {"mode": {"entrypoint": True, "endpoint": True}, "phase": {"request": True, "response": True},
            "content": {"headers": True, "payload": True},
            "condition": "{#request.id.hashCode() % 5 == 0}"}
+ANALYTICS = {"enabled": True, "logging": LOGGING}
+if OTEL:
+    ANALYTICS |= {"tracing": {"enabled": True, "verbose": False}, "otelLogs": {"enabled": True}}
 # Fields accepted by PUT /v2/apis/{id}
 UPDATABLE = ["name", "apiVersion", "definitionVersion", "type", "description", "listeners", "endpointGroups",
              "flows", "flowExecution", "analytics", "properties", "resources", "responseTemplates", "labels",
@@ -106,7 +113,7 @@ def ensure_api(spec):
                 {"name": "backend", "type": "http-proxy", "configuration": {"target": BACKEND}}]}],
             "flows": [flow("Analytics dimensions", [assign_metrics(("app", APP_EL), ("tenant", TENANT_EL),
                                                                     ("channel", CHANNEL_EL))])] if ENTERPRISE else [],
-            "analytics": {"enabled": True, "logging": LOGGING},
+            "analytics": ANALYTICS,
         })
         print(f"created API {spec['name']}")
     else:
@@ -131,13 +138,13 @@ def ensure_api(spec):
 
 def ensure_logging(api):
     full = call("GET", f"{V2}/apis/{api['id']}")
-    logging = full.get("analytics", {}).get("logging") or {}
-    if logging.get("condition") == LOGGING["condition"] and logging.get("content", {}).get("payload"):
+    analytics = full.get("analytics", {})
+    if all(analytics.get(k) == v for k, v in ANALYTICS.items() if k != "enabled"):
         return
     body = {k: full[k] for k in UPDATABLE if k in full}
-    body["analytics"] = {**full.get("analytics", {}), "enabled": True, "logging": LOGGING}
+    body["analytics"] = {**analytics, **ANALYTICS}
     call("PUT", f"{V2}/apis/{api['id']}", body)
-    print(f"  call logging enabled on {api['name']} (1 call in 5)")
+    print(f"  call logging enabled on {api['name']} (1 call in 5)" + (", with OpenTelemetry traces and logs" if OTEL else ""))
 
 
 def ensure_app(name):
@@ -179,9 +186,9 @@ def main():
             api_keys = call("GET", f"{V2}/apis/{api['id']}/subscriptions/{sub['id']}/api-keys")["data"]
             keys.setdefault(app_name, {})[api_name] = api_keys[0]["key"]
     out = {"keys": keys, "apis": {n: s["path"] for n, s in zip(apis, APIS)}}
-    with open(os.path.join(HERE, ".keys.json"), "w") as f:
+    with open(KEYS_FILE, "w") as f:
         json.dump(out, f, indent=2)
-    print(f"wrote {len(keys)} applications' keys to scripts/.keys.json")
+    print(f"wrote {len(keys)} applications' keys to {os.path.relpath(KEYS_FILE)}")
 
 
 if __name__ == "__main__":
