@@ -117,7 +117,7 @@
       },
       {
         "name": "search",
-        "label": "Search (headers & payloads)",
+        "label": "Search payloads",
         "type": "textbox",
         "query": "*",
         "current": {

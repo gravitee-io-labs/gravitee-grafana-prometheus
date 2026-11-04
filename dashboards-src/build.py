@@ -1186,7 +1186,7 @@ def logs():
          es_terms_var("api", "API", "api-name", ds=LOG),
          {"name": "request_id", "label": "Request id (call detail)", "type": "textbox", "query": "",
           "current": {"text": "", "value": ""}, "hide": 0},
-         {"name": "search", "label": "Search (headers & payloads)", "type": "textbox", "query": "*",
+         {"name": "search", "label": "Search payloads", "type": "textbox", "query": "*",
           "current": {"text": "*", "value": "*"}, "hide": 0}]
     return dashboard("gravitee-logs", "Gravitee · Call Logs",
                      "Headers and payloads of logged API calls, on the client and backend side: search them, list "

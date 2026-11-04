@@ -1,6 +1,6 @@
 // Captures full-height PNGs of every Gravitee OTel dashboard (Grafana on :3001) into otel/media/.
 // Needs playwright-core (`(cd scripts && npm i --no-save playwright-core@1.48.2)`) and a local Google Chrome.
-// Usage: node otel/capture-media.js     FROM=<epoch ms | now-1h> (default now-1h)   ONLY=<uid,uid>
+// Usage: node otel/capture-media.js     FROM=<epoch ms | now-1h> (default now-1h)   TO=<epoch ms | now>   ONLY=<uid,uid>
 const fs = require('fs');
 const path = require('path');
 const { chromium } = require(path.join(__dirname, '..', 'scripts', 'node_modules', 'playwright-core'));
@@ -25,11 +25,21 @@ const DASHBOARDS = [
 // Request id of the most recent logged POST with a backend response
 async function recentCall() {
   const q = '{service_name="gio-apim-gateway"} | gravitee_log_type="endpoint-response" | gravitee_api_name="Payments API"';
-  const start = (Date.now() - 600000) * 1e6;
+  const end = /^\d+$/.test(process.env.TO || '') ? Number(process.env.TO) : Date.now();
   const r = await fetch(`${GRAFANA}/api/datasources/proxy/uid/gravitee-loki/loki/api/v1/query_range?` +
-    new URLSearchParams({ query: q, limit: '20', start: String(start) }), { headers: { Authorization: AUTH } });
+    new URLSearchParams({ query: q, limit: '20', start: String((end - 600000) * 1e6), end: String(end * 1e6) }),
+    { headers: { Authorization: AUTH } });
   const streams = (await r.json()).data.result;
   return streams[0].stream.gravitee_request_id;
+}
+
+// Client IPs are replaced by a placeholder in the page right before each screenshot
+async function hideIps(page) {
+  await page.evaluate(() => {
+    const ip = /\b\d{1,3}(\.\d{1,3}){3}\b/g;
+    const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n; (n = walk.nextNode());) if (ip.test(n.nodeValue)) n.nodeValue = n.nodeValue.replace(ip, '•.•.•.•');
+  });
 }
 
 function gridHeight(uid) {
@@ -50,6 +60,7 @@ function gridHeight(uid) {
     await page.goto(`${GRAFANA}/d/${d.uid}?orgId=1&${RANGE}${extra}&kiosk&refresh=`);
     await page.waitForLoadState('networkidle', { timeout: 30000 }).catch(() => {});
     await page.waitForTimeout(8000);
+    await hideIps(page);
     await page.screenshot({ path: path.join(OUT, `${d.file}.png`), fullPage: true });
     console.log(`${d.file}.png`);
     await ctx.close();

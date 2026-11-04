@@ -39,22 +39,22 @@ groups:
 
       - alert: GraviteeHeapPressure
         expr: |
-          sum by (instance) (jvm_memory_used_bytes{area="heap"})
-            / sum by (instance) (jvm_memory_max_bytes{area="heap"} > 0) > 0.9
+          sum by (instance) (jvm_memory_used_bytes{job="gravitee", area="heap"})
+            / sum by (instance) (jvm_memory_max_bytes{job="gravitee", area="heap"} > 0) > 0.9
         for: 10m
         labels: { severity: warning }
         annotations:
           summary: "Gateway {{ $labels.instance }} heap above 90% for 10 minutes"
 
       - alert: GraviteeGcPressure
-        expr: sum by (instance) (rate(jvm_gc_pause_seconds_sum[5m])) > 0.1
+        expr: sum by (instance) (rate(jvm_gc_pause_seconds_sum{job="gravitee"}[5m])) > 0.1
         for: 10m
         labels: { severity: warning }
         annotations:
           summary: "Gateway {{ $labels.instance }} spends more than 10% of its time in GC"
 
       - alert: GraviteeHighCpu
-        expr: process_cpu_usage > 0.85
+        expr: process_cpu_usage{job="gravitee"} > 0.85
         for: 10m
         labels: { severity: warning }
         annotations:

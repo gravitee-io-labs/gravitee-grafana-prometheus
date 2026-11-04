@@ -25,13 +25,15 @@ Gravitee writes one analytics record per API call. These dashboards use it as-is
 
 ## Requirements
 
+A few panels use data available only with Gravitee Enterprise, such as the business dimensions set by the Assign Metrics policy. Without a license, those panels explain how to enable them.
+
 | Component | Version / setting |
 | --- | --- |
 | Gravitee APIM | 4.x, v4 APIs (analytics index `gravitee-v4-metrics-*`) |
 | Analytics reporter | Elasticsearch or OpenSearch (the default APIM reporter) |
 | Gateway metrics | `services.metrics.enabled=true`, `services.metrics.prometheus.enabled=true` |
-| Grafana | 10.4 or later (tested on 12.2) |
-| Prometheus | 2.40 or later (tested on 3.5) |
+| Grafana | Tested on 12.2 |
+| Prometheus | Tested on 3.5 |
 
 ## Install
 
@@ -56,7 +58,7 @@ The Call Logs dashboard reads the logs Gravitee writes for APIs with logging ena
 
 - The condition is evaluated when the request arrives, so it can't select on the response status. Log a sample, a debug header or a time window (`#request.timestamp`).
 - A logged call takes about 2 KB, several times its analytics record. Keep the log index's retention short.
-- Logs can contain personal data and credentials. The dashboard hides API key, `Authorization` and cookie headers, but they're stored in the index: restrict access to the call-logs data source.
+- Logs can contain personal data and credentials. The dashboard hides only the `X-Gravitee-Api-Key`, `Authorization`, `Proxy-Authorization`, `Cookie` and `Set-Cookie` headers. API keys sent under another header name, and credentials inside bodies, stay visible, and everything is stored in the index: restrict access to the call-logs data source, and add your own header names to the Call Logs panels if needed.
 - Search payloads with wildcards (`*ORD-1234*`): bodies are split on spaces only. Headers are stored but not searchable.
 
 ## Add your own business dimensions (Enterprise)

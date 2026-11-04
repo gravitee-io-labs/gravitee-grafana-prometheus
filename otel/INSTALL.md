@@ -24,12 +24,12 @@ Every call can be opened as a **trace**: its phases, plan flow, each policy with
 
 | Component | Version / setting |
 | --- | --- |
-| Gravitee APIM | 4.13 or later, v4 APIs. The OpenTelemetry reporter (`gravitee-reporter-otel`) ships in the 4.13 Gateway image. Tested with an Enterprise license only. |
+| Gravitee APIM | 4.13 or later, v4 APIs. The OpenTelemetry reporter (`gravitee-reporter-otel`) ships in the 4.13 Gateway image. Tested on 4.13.5. |
 | OpenTelemetry Collector | *contrib* distribution (for the `spanmetrics` connector), tested on 0.115 |
-| Prometheus | 2.40 or later (tested on 3.5) |
+| Prometheus | Tested on 3.5 |
 | Tempo | 2.7 or later: the trace tables use the `most_recent` search hint (tested on 2.7.2) |
 | Loki | 3.0 or later, with structured metadata (tested on 3.3) |
-| Grafana | 10.4 or later (tested on 12.2) |
+| Grafana | Tested on 12.2 |
 
 ## Install
 
@@ -82,7 +82,7 @@ Every call can be opened as a **trace**: its phases, plan flow, each policy with
 
 The OpenTelemetry signals don't carry everything the Elasticsearch analytics record does:
 
-| Not available here | Why | Closest alternative |
+| Not charted here | Why | Closest alternative |
 | --- | --- | --- |
 | Country, city, world map | No geo-IP on spans | The client IP is on each trace |
 | User agents, client OS | The span has the raw user agent, but as a metric label it would create too many series | Search traces in Tempo by `span.user_agent.original` |
@@ -91,7 +91,8 @@ The OpenTelemetry signals don't carry everything the Elasticsearch analytics rec
 | Business dimensions (`custom.*`, Assign Metrics) | Not exported on spans | — |
 | Request and response headers in Call Logs | OTel logs carry bodies only | The trace shows the call's path through the Gateway |
 | Reason for plan-security rejections (401) | No failure key on those spans | The 401/403 counts |
-| Payload sizes, backend connect time, time-to-first-byte | Not on spans | Backend time from the client span |
+| Payload sizes | On the server span (`http.request.body.size`, `http.response.body.size`, from `Content-Length`), but not charted | Shown on each trace |
+| Backend connect time, time-to-first-byte | Not on spans | Backend time from the client span |
 
 The Gateway overhead is an **average** (server span minus backend span): percentiles can't be subtracted.
 

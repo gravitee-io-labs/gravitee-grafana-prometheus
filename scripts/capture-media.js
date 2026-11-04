@@ -3,6 +3,7 @@
 // Usage: node scripts/capture-media.js [shots|video|all]
 //   FROM=<epoch ms | now-1h>  start of the time range (default now-1h); TO defaults to now
 //   ONLY=<uid,uid>            capture only these dashboards
+//   CALL_QUERY=<lucene>       logged call shown in Call Logs' call detail
 const fs = require('fs');
 const path = require('path');
 const { chromium } = require('playwright-core');
@@ -22,7 +23,7 @@ const DASHBOARDS = [
   { uid: 'gravitee-runtime', file: '4-gateway-fleet-runtime', extra: '' },
   { uid: 'gravitee-slo', file: '5-slos-error-budgets', extra: '' },
   // Call detail shows a recent logged POST, so the payload panels have bodies on every hop
-  { uid: 'gravitee-logs', file: '7-call-logs', extra: async () => `&var-request_id=${await recentCall(
+  { uid: 'gravitee-logs', file: '7-call-logs', extra: async () => `&var-request_id=${await recentCall(process.env.CALL_QUERY ||
     'entrypoint-request.method:POST AND _exists_:endpoint-response.body AND _exists_:application-name')}` },
 ].filter(d => !process.env.ONLY || process.env.ONLY.split(',').includes(d.uid));
 
@@ -36,6 +37,15 @@ async function recentCall(query) {
   const frame = (await r.json()).results.A.frames[0];
   const i = frame.schema.fields.findIndex(f => f.name === 'request-id');
   return frame.data.values[i][0];
+}
+
+// Client IPs are replaced by a placeholder in the page right before each screenshot
+async function hideIps(page) {
+  await page.evaluate(() => {
+    const ip = /\b\d{1,3}(\.\d{1,3}){3}\b/g;
+    const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let n; (n = walk.nextNode());) if (ip.test(n.nodeValue)) n.nodeValue = n.nodeValue.replace(ip, '•.•.•.•');
+  });
 }
 
 const url = (d, kiosk = true) => `${GRAFANA}/d/${d.uid}?orgId=1&${RANGE}${d.extra}${kiosk ? '&kiosk' : ''}&refresh=`;
@@ -71,6 +81,7 @@ async function shots(browser) {
     await page.goto(url(d));
     await settle(page, 9000);
     const file = path.join(OUT, `${d.file}.png`);
+    await hideIps(page);
     await page.screenshot({ path: file });
     console.log(`png ${file} (${W}x${h})`);
     await ctx.close();
